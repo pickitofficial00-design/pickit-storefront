@@ -1,8 +1,8 @@
-
 "use client";
 
+import { useCart } from "./context/CartContext";
+import Link from "next/link";
 import { useMemo, useState } from "react";
-
 const products = [
   {
     id: 1,
@@ -67,8 +67,7 @@ const categories = ["All", "Electronics", "Fashion", "Home"];
 export default function Home() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
-  const [cart, setCart] = useState(0);
-
+  const { cartCount } = useCart();
   const filtered = useMemo(() => {
     return products.filter((product) => {
       const matchesSearch = product.name
@@ -100,12 +99,9 @@ export default function Home() {
           onChange={(event) => setSearch(event.target.value)}
         />
 
-        <button
-          className="cart"
-          onClick={() => alert(`Demo cart: ${cart} items`)}
-        >
-          🛒 Cart ({cart})
-        </button>
+        <Link className="cart" href="/cart">
+  🛒 Cart ({cartCount})
+</Link>
       </header>
 
       <nav className="nav">
@@ -185,23 +181,18 @@ export default function Home() {
 
         <div className="grid">
           {filtered.map((product) => (
-            <article className="product" key={product.id}>
-              <div className="product-image">
-                <img src={product.image} alt={product.name} />
-              </div>
+   <article className="product" key={product.id}>
+  <div className="product-image">
+    <img src={product.image} alt={product.name} />
+  </div>
 
-              <div className="product-info">
-                <small>{product.category}</small>
-                <h3>{product.name}</h3>
-
-                <div className="product-bottom">
-                  <strong>${product.price.toFixed(2)}</strong>
-                  <button onClick={() => setCart((count) => count + 1)}>
-                    + Add
-                  </button>
-                </div>
-              </div>
-            </article>
+  <div className="product-info">
+    <small>{product.category}</small>
+    <Link href={`/product/${product.id}`}>
+      <h3>{product.name}</h3>
+    </Link>
+  </div>
+</article>
           ))}
         </div>
 

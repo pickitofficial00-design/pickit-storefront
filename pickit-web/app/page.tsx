@@ -118,6 +118,9 @@ export default function Home() {
         <Link className="cart" href="/cart">
           🛒 Cart ({cartCount})
         </Link>
+        <Link className="cart" href="/account">
+  👤 Account
+</Link>
       </header>
 
       <nav className="nav">

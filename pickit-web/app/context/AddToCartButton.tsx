@@ -14,21 +14,25 @@ type Props = {
 };
 
 export default function AddToCartButton({ product }: Props) {
-  const { addToCart } = useCart();
-  const [added, setAdded] = useState(false);
+  const { cart, addToCart, removeFromCart } = useCart();
 
-  function handleAddToCart() {
-    addToCart(product);
-    setAdded(true);
+  const isInCart = cart.some((item) => item.id === product.id);
+
+  function handleClick() {
+    if (isInCart) {
+      removeFromCart(product.id);
+    } else {
+      addToCart(product);
+    }
   }
 
   return (
     <button
-      onClick={handleAddToCart}
+      onClick={handleClick}
       style={{
         width: "100%",
         padding: 16,
-        background: added ? "#238636" : "#f26b21",
+        background: isInCart ? "#238636" : "#f26b21",
         color: "white",
         border: 0,
         borderRadius: 8,
@@ -37,7 +41,7 @@ export default function AddToCartButton({ product }: Props) {
         cursor: "pointer",
       }}
     >
-      {added ? "Added to Cart ✓" : "Add to Cart"}
+      {isInCart ? "Added to Cart ✓" : "Add to Cart"}
     </button>
   );
 }

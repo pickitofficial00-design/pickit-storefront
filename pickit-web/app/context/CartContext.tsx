@@ -40,7 +40,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const savedCart = localStorage.getItem("pickit-cart");
 
       if (savedCart) {
-        setCart(JSON.parse(savedCart));
+        const parsedCart = JSON.parse(savedCart);
+
+        if (Array.isArray(parsedCart)) {
+          setCart(parsedCart);
+        }
       }
     } catch {
       localStorage.removeItem("pickit-cart");
@@ -56,6 +60,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [cart, isLoaded]);
 
+  // Add product to cart
   function addToCart(item: Omit<CartItem, "quantity">) {
     setCart((currentCart) => {
       const existing = currentCart.find(
@@ -74,7 +79,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   }
 
-    function increaseQuantity(id: string) {
+  // Increase product quantity
+  function increaseQuantity(id: string) {
     setCart((currentCart) =>
       currentCart.map((item) =>
         item.id === id
@@ -84,6 +90,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  // Decrease product quantity
   function decreaseQuantity(id: string) {
     setCart((currentCart) =>
       currentCart
@@ -96,28 +103,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  // Remove product completely
   function removeFromCart(id: string) {
     setCart((currentCart) =>
       currentCart.filter((item) => item.id !== id)
     );
   }
+
+  // Calculate total cart quantity
   const cartCount = cart.reduce(
     (total, item) => total + item.quantity,
     0
   );
 
   return (
-   <CartContext.Provider
-  value={{
-    cart,
-    addToCart,
-    increaseQuantity,
-    decreaseQuantity,
-    removeFromCart,
-    cartCount,
-  }}
->
-       {children}
+    <CartContext.Provider
+      value={{
+        cart,
+        addToCart,
+        increaseQuantity,
+        decreaseQuantity,
+        removeFromCart,
+        cartCount,
+      }}
+    >
+      {children}
     </CartContext.Provider>
   );
 }

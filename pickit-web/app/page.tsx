@@ -3,84 +3,80 @@
 import { useCart } from "./context/CartContext";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-const products = [
-  {
-    id: 1,
-    name: "Wireless Headphones",
-    price: 29.99,
-    category: "Electronics",
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=700",
-  },
-  {
-    id: 2,
-    name: "Smart Watch",
-    price: 39.99,
-    category: "Electronics",
-    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=700",
-  },
-  {
-    id: 3,
-    name: "Everyday Backpack",
-    price: 34.99,
-    category: "Fashion",
-    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=700",
-  },
-  {
-    id: 4,
-    name: "Portable Speaker",
-    price: 24.99,
-    category: "Electronics",
-    image: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=700",
-  },
-  {
-    id: 5,
-    name: "Stylish Sunglasses",
-    price: 19.99,
-    category: "Fashion",
-    image: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=700",
-  },
-  {
-    id: 6,
-    name: "Modern Desk Lamp",
-    price: 27.99,
-    category: "Home",
-    image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=700",
-  },
-  {
-    id: 7,
-    name: "Travel Bottle",
-    price: 14.99,
-    category: "Home",
-    image: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=700",
-  },
-  {
-    id: 8,
-    name: "Gaming Controller",
-    price: 44.99,
-    category: "Electronics",
-    image: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=700",
-  },
-];
+import { products } from "./products";
+
+
 
 const categories = ["All", "Electronics", "Fashion", "Home"];
 
 export default function Home() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const [sort, setSort] = useState("featured");
+  const [minPrice, setMinPrice] = useState("");
+const [maxPrice, setMaxPrice] = useState("");
+const [minRating, setMinRating] = useState("0");
+const [selectedBrand, setSelectedBrand] = useState("All");
+const [availability, setAvailability] = useState("all");
+const [minDiscount, setMinDiscount] = useState("0");
+const invalidPriceRange =
+  minPrice !== "" &&
+  maxPrice !== "" &&
+  Number(minPrice) > Number(maxPrice);
   const { cartCount } = useCart();
   const filtered = useMemo(() => {
-    return products.filter((product) => {
-      const matchesSearch = product.name
-        .toLowerCase()
-        .includes(search.toLowerCase());
+  let result = products.filter((product) => {
+    const matchesSearch = product.name
+      .toLowerCase()
+      .includes(search.toLowerCase());
 
-      const matchesCategory =
-        category === "All" || product.category === category;
+    const matchesCategory =
+      category === "All" || product.category === category;
+      const matchesMinPrice =
+  minPrice === "" || product.price >= Number(minPrice);
 
-      return matchesSearch && matchesCategory;
-    });
-  }, [search, category]);
+const matchesMaxPrice =
+  maxPrice === "" || product.price <= Number(maxPrice);
+  const matchesRating = product.rating >= Number(minRating);
+  const matchesDiscount = product.discount >= Number(minDiscount);
+  const matchesBrand =
+  selectedBrand === "All" || product.brand === selectedBrand;
+  const matchesAvailability =
+  availability === "all" ||
+  (availability === "in-stock" && product.inStock) ||
+  (availability === "out-of-stock" && !product.inStock);
+   return (
+  matchesSearch &&
+  matchesCategory &&
+  matchesMinPrice &&
+  matchesMaxPrice &&
+  matchesRating &&
+  matchesDiscount &&
+  matchesBrand &&
+  matchesAvailability
+);
+  });
 
+  if (sort === "low-high") {
+    result.sort((a, b) => a.price - b.price);
+  } else if (sort === "high-low") {
+    result.sort((a, b) => b.price - a.price);
+  } else if (sort === "name") {
+    result.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  return result;
+}, [
+  search,
+  category,
+  sort,
+  minPrice,
+  maxPrice,
+  minRating,
+  minDiscount,
+  selectedBrand,
+  availability,
+]);
   return (
     <main>
       <div className="announcement">
@@ -177,14 +173,124 @@ export default function Home() {
               {item}
             </button>
           ))}
-        </div>
+        </div><button
+  className="clear-filters"
+  onClick={() => {
+    setSearch("");
+    setCategory("All");
+    setSort("featured");
+    setMinPrice("");
+    setMinRating("0");
+setSelectedBrand("All");
+setAvailability("all");
+setMinDiscount("0");
+    setMaxPrice("");
+  }}
+>
+  Clear All Filters
+</button>
 
+        <div className="price-filter">
+  <label>Price range:</label>
+
+  <input
+    type="number"
+    placeholder="Min $"
+    min="0"
+    value={minPrice}
+    onChange={(event) => setMinPrice(event.target.value)}
+  />
+
+  <input
+    type="number"
+    placeholder="Max $"
+    min="0"
+    value={maxPrice}
+    onChange={(event) => setMaxPrice(event.target.value)}
+  />
+</div>
+<div className="rating-filter">
+  <label htmlFor="min-rating">Customer rating:</label>
+  <select
+    id="min-rating"
+    value={minRating}
+    onChange={(event) => setMinRating(event.target.value)}
+  >
+    <option value="0">All ratings</option>
+    <option value="4">4 stars & above</option>
+    <option value="3">3 stars & above</option>
+    <option value="2">2 stars & above</option>
+  </select>
+</div><div className="brand-filter">
+  <label htmlFor="brand-select">Brand:</label>
+  <select
+    id="brand-select"
+    value={selectedBrand}
+    onChange={(event) => setSelectedBrand(event.target.value)}
+  >
+    <option value="All">All Brands</option>
+    <option value="SoundMax">SoundMax</option>
+    <option value="TimePro">TimePro</option>
+    <option value="UrbanTrail">UrbanTrail</option>
+    <option value="VisionX">VisionX</option>
+    <option value="LumiHome">LumiHome</option>
+    <option value="HydroPeak">HydroPeak</option>
+    <option value="GameCore">GameCore</option>
+  </select>
+</div>
+<div className="availability-filter">
+  <label htmlFor="availability">Availability:</label>
+  <select
+    id="availability"
+    value={availability}
+    onChange={(event) => setAvailability(event.target.value)}
+  >
+    <option value="all">All products</option>
+    <option value="in-stock">In stock</option>
+    <option value="out-of-stock">Out of stock</option>
+  </select>
+</div>
+<div className="discount-filter">
+  <label>Discount</label>
+  <select
+    value={minDiscount}
+    onChange={(e) => setMinDiscount(e.target.value)}
+  >
+    <option value="0">All Discounts</option>
+    <option value="10">10% or more</option>
+    <option value="20">20% or more</option>
+    <option value="30">30% or more</option>
+  </select>
+</div>
+{invalidPriceRange && (
+  <p className="price-error">
+    Minimum price cannot be greater than maximum price.
+  </p>
+)}
+        <div className="sort-row">
+  <label htmlFor="sort-products">Sort by:</label>
+  <select
+    id="sort-products"
+    value={sort}
+    onChange={(event) => setSort(event.target.value)}
+  >
+    <option value="featured">Featured</option>
+    <option value="low-high">Price: Low to High</option>
+    <option value="high-low">Price: High to Low</option>
+    <option value="name">Name: A to Z</option>
+  </select>
+</div>
+        <p className="product-count">
+  Showing {filtered.length} products
+</p>
         <div className="grid">
           {filtered.map((product) => (
    <article className="product" key={product.id}>
+  <Link href={`/product/${product.id}`}>
   <div className="product-image">
     <img src={product.image} alt={product.name} />
   </div>
+</Link>
 
   <div className="product-info">
     <small>{product.category}</small>
@@ -395,6 +501,132 @@ export default function Home() {
           margin: 25px 0;
           flex-wrap: wrap;
         }
+        .price-filter input {
+  width: 110px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: #222;
+  font-size: 14px;
+}
+  .rating-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.rating-filter label {
+  font-size: 14px;
+  color: #555;
+}
+
+.rating-filter select {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: #222;
+  cursor: pointer;
+}
+  .brand-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.brand-filter label {
+  font-size: 14px;
+  color: #555;
+}
+
+.brand-filter select {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: #222;
+  cursor: pointer;
+}
+  .availability-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 15px 0;
+}
+  .discount-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.discount-filter select {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+}
+
+.availability-filter label {
+  font-size: 14px;
+  color: #555;
+}
+
+.availability-filter select {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: #222;
+  cursor: pointer;
+}
+
+.price-filter label {
+  font-size: 14px;
+  color: #555;
+}
+
+.price-filter select {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: #222;
+  cursor: pointer;
+}  
+        .sort-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 20px 0;
+}
+  .product-count {
+  font-size: 14px;
+  color: #666;
+  margin: 15px 0;
+}
+  .price-error {
+  color: #d93025;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.sort-row label {
+  font-size: 14px;
+  color: #555;
+}
+
+.sort-row select {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: #222;
+  cursor: pointer;
+}
 
         .filters button {
           border: 1px solid #eee;
@@ -547,7 +779,25 @@ export default function Home() {
             padding: 11px;
           }
         }
-      `}</style>
+      }
+
+.clear-filters {
+  padding: 10px 16px;
+  border: 1px solid #222;
+  border-radius: 6px;
+  background: white;
+  color: #222;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.clear-filters:hover {
+  background: #222;
+  color: white;
+}
+      `}
+      </style>
     </main>
   );
 }

@@ -1,89 +1,19 @@
+
 import AddToCartButton from "../../context/AddToCartButton";
+import { products } from "../../products";
 
 export const instant = false;
 
-const products = [
-  {
-    id: "1",
-    name: "Premium Wireless Headphones",
-    price: 39.99,
-    category: "Electronics",
-    description:
-      "Enjoy clear sound, comfortable ear cushions and wireless listening for everyday use.",
-    image:
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=900",
-  },
-  {
-    id: "2",
-    name: "Smart Watch",
-    price: 49.99,
-    category: "Electronics",
-    description:
-      "A modern smartwatch for everyday convenience and style.",
-    image:
-      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=900",
-  },
-  {
-    id: "3",
-    name: "Minimal Backpack",
-    price: 34.99,
-    category: "Accessories",
-    description:
-      "A practical backpack with a clean design for daily use.",
-    image:
-      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=900",
-  },
-  {
-    id: "4",
-    name: "Modern Sunglasses",
-    price: 19.99,
-    category: "Accessories",
-    description:
-      "A stylish everyday accessory with a modern frame.",
-    image:
-      "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=900",
-  },
-  {
-    id: "5",
-    name: "Portable Bluetooth Speaker",
-    price: 29.99,
-    category: "Electronics",
-    description:
-      "Compact wireless speaker for music at home or on the go.",
-    image:
-      "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=900",
-  },
-  {
-    id: "6",
-    name: "Premium Water Bottle",
-    price: 14.99,
-    category: "Lifestyle",
-    description:
-      "A reusable bottle designed for everyday hydration.",
-    image:
-      "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=900",
-  },
-  {
-    id: "7",
-    name: "Desk Lamp",
-    price: 24.99,
-    category: "Lifestyle",
-    description:
-      "A modern desk lamp for your workspace.",
-    image:
-      "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=900",
-  },
-  {
-    id: "8",
-    name: "Wireless Earbuds",
-    price: 27.99,
-    category: "Electronics",
-    description:
-      "Compact wireless earbuds for everyday listening.",
-    image:
-      "https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=900",
-  },
-];
+const descriptions: Record<string, string> = {
+  "1": "Enjoy clear sound, comfortable ear cushions and wireless listening for everyday use.",
+  "2": "A modern smartwatch for everyday convenience and style.",
+  "3": "A practical backpack with a clean design for daily use.",
+  "4": "A stylish everyday accessory with a modern frame.",
+  "5": "Compact wireless speaker for music at home or on the go.",
+  "6": "A reusable bottle designed for everyday hydration.",
+  "7": "A modern desk lamp for your workspace.",
+  "8": "Compact wireless earbuds for everyday listening.",
+};
 
 export default async function ProductPage({
   params,
@@ -130,6 +60,7 @@ export default async function ProductPage({
         >
           PICKIT
         </a>
+
         <a href="/" style={{ fontWeight: 600 }}>
           ← Continue shopping
         </a>
@@ -168,7 +99,7 @@ export default async function ProductPage({
           </h1>
 
           <p style={{ color: "#777", lineHeight: 1.7 }}>
-            {product.description}
+            {descriptions[product.id] ?? "Discover this product at PICKIT."}
           </p>
 
           <h2 style={{ fontSize: 30 }}>
@@ -179,14 +110,41 @@ export default async function ProductPage({
             Price shown is a demonstration price.
           </p>
 
-         <AddToCartButton
-  product={{
-    id: product.id,
-    name: product.name,
-    price: product.price,
-    image: product.image,
-  }}
-/>
+          <p
+            style={{
+              color: product.inStock ? "#16803c" : "#dc2626",
+              fontWeight: 700,
+              margin: "15px 0",
+            }}
+          >
+            {product.inStock ? "● In Stock" : "● Out of Stock"}
+          </p>
+
+          {product.inStock ? (
+            <AddToCartButton
+              product={{
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                image: product.image,
+              }}
+            />
+          ) : (
+            <button
+              disabled
+              style={{
+                padding: "13px 24px",
+                background: "#cccccc",
+                color: "#666666",
+                border: "none",
+                borderRadius: 6,
+                cursor: "not-allowed",
+                fontWeight: 700,
+              }}
+            >
+              Currently Unavailable
+            </button>
+          )}
 
           <p style={{ marginTop: 20, color: "#777", fontSize: 13 }}>
             PICKIT — Discover. Choose. Enjoy.

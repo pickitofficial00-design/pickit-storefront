@@ -127,10 +127,17 @@ export default function Home() {
 
   const filtered = useMemo(() => {
     let result = products.filter((product) => {
-      const matchesSearch = product.name
-        .toLowerCase()
-        .includes(search.toLowerCase());
+     const searchTerm = search.toLowerCase().trim();
 
+const matchesSearch = [
+  product.name,
+  product.brand,
+  product.description,
+  product.category,
+]
+  .join(" ")
+  .toLowerCase()
+  .includes(searchTerm);
       const matchesCategory =
         category === "All" || product.category === category;
 

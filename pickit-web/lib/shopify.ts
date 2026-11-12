@@ -36,16 +36,24 @@ export async function handleRequest(
   const sessionManager =
     await createCustomerSessionManager(request);
 
-  const shopifyResponse = handleShopifyRoutes({
-    request,
-    requestContext,
-    sessionManager,
-    storefrontClient,
-    routeTemplates,
-    handlers: [customerAccountHandlers],
-  });
+ const pathname = new URL(request.url).pathname;
 
-  if (shopifyResponse) return shopifyResponse;
+const shopifyResponse =
+  pathname === "/account/logout"
+    ? null
+    : await handleShopifyRoutes({
+        request,
+        requestContext,
+        sessionManager,
+        storefrontClient,
+        routeTemplates,
+        handlers: [customerAccountHandlers],
+      });
+
+  if (shopifyResponse) {
+  return shopifyResponse;
+}
+
 
   let response = await next(request, storefrontClient);
 

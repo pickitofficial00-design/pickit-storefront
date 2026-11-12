@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@remix-run/cookie": "^1.0.2",
+    "@remix-run/session": "^1.0.1",
+    "@shopify/hydrogen": "^2026.10.3",
     "next": "16.4.5",
     "react": "19.3.0",
     "react-dom": "19.3.0"

@@ -20,7 +20,7 @@ export async function createRequestSessionManager(
     await cookie.parse(request.headers.get("cookie"))
   );
 
-  const origin = new URL(request.url).origin;
+  const origin = process.env.SITE_ORIGIN!;
 
   return {
     getSessionOrigin: () => origin,

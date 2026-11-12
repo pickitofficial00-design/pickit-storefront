@@ -1,27 +1,71 @@
 
+import { gql } from "@shopify/hydrogen";
+import { headers } from "next/headers";
 import AddToCartButton from "../../context/AddToCartButton";
-import { products } from "../../products";
+import { createRequestStorefrontClient } from "../../../lib/storefront";
 
 export const instant = false;
 
-const descriptions: Record<string, string> = {
-  "1": "Enjoy clear sound, comfortable ear cushions and wireless listening for everyday use.",
-  "2": "A modern smartwatch for everyday convenience and style.",
-  "3": "A practical backpack with a clean design for daily use.",
-  "4": "A stylish everyday accessory with a modern frame.",
-  "5": "Compact wireless speaker for music at home or on the go.",
-  "6": "A reusable bottle designed for everyday hydration.",
-  "7": "A modern desk lamp for your workspace.",
-  "8": "Compact wireless earbuds for everyday listening.",
-};
+const PRODUCT_QUERY = gql(`
+  query PickitProductByHandle($handle: String!) {
+    product(handle: $handle) {
+      id
+      handle
+      title
+      description
+      productType
+      availableForSale
+      featuredImage {
+        url
+        altText
+      }
+      variants(first: 1) {
+        nodes {
+          id
+          price {
+            amount
+            currencyCode
+          }
+        }
+      }
+    }
+  }
+`);
 
 export default async function ProductPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const product = products.find((item) => item.id === id);
+  const { id: handle } = await params;
+
+  const request = new Request("https://pickit-storefront.vercel.app", {
+    headers: await headers(),
+  });
+
+  const storefront = createRequestStorefrontClient(request);
+
+  let product;
+
+  try {
+    const { data, errors } = await storefront.graphql(PRODUCT_QUERY, {
+      variables: { handle },
+    });
+
+    if (errors) {
+      throw new Error("Shopify product query failed");
+    }
+
+    product = data.product;
+  } catch {
+    return (
+      <main style={{ padding: 40, fontFamily: "Arial" }}>
+        <h1>Unable to load product</h1>
+        <p>Please try again later.</p>
+        <a href="/">Back to PICKIT</a>
+      </main>
+    );
+  }
 
   if (!product) {
     return (
@@ -31,6 +75,10 @@ export default async function ProductPage({
       </main>
     );
   }
+
+  const variant = product.variants.nodes[0];
+  const price = Number(variant?.price.amount ?? 0);
+  const currency = variant?.price.currencyCode ?? "USD";
 
   return (
     <main
@@ -56,6 +104,7 @@ export default async function ProductPage({
             fontSize: 30,
             fontWeight: 900,
             color: "#f26b21",
+            textDecoration: "none",
           }}
         >
           PICKIT
@@ -77,67 +126,83 @@ export default async function ProductPage({
           alignItems: "center",
         }}
       >
-        <img
-          src={product.image}
-          alt={product.name}
-          style={{
-            width: "100%",
-            maxHeight: 480,
-            objectFit: "contain",
-            background: "#f5f3ef",
-            borderRadius: 16,
-          }}
-        />
+        {product.featuredImage?.url ? (
+          <img
+            src={product.featuredImage.url}
+            alt={product.featuredImage.altText ?? product.title}
+            style={{
+              width: "100%",
+              maxHeight: 480,
+              objectFit: "contain",
+              background: "#f5f3ef",
+              borderRadius: 16,
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              minHeight: 300,
+              background: "#f5f3ef",
+              borderRadius: 16,
+              display: "grid",
+              placeItems: "center",
+              color: "#777",
+            }}
+          >
+            No product image
+          </div>
+        )}
 
         <div>
           <p style={{ color: "#f26b21", fontWeight: 700 }}>
-            {product.category}
+            {product.productType || "Other"}
           </p>
 
           <h1 style={{ fontSize: 34, lineHeight: 1.2 }}>
-            {product.name}
+            {product.title}
           </h1>
 
           <p style={{ color: "#777", lineHeight: 1.7 }}>
-            {descriptions[product.id] ?? "Discover this product at PICKIT."}
+            {product.description || "Discover this product at PICKIT."}
           </p>
 
           <h2 style={{ fontSize: 30 }}>
-            ${product.price.toFixed(2)}
+            {new Intl.NumberFormat("en-US", {
+              style: "currency",
+              currency,
+            }).format(price)}
           </h2>
-
-          <p style={{ color: "#777", fontSize: 13 }}>
-            Price shown is a demonstration price.
-          </p>
 
           <p
             style={{
-              color: product.inStock ? "#16803c" : "#dc2626",
+              color: product.availableForSale ? "#16803c" : "#dc2626",
               fontWeight: 700,
               margin: "15px 0",
             }}
           >
-            {product.inStock ? "● In Stock" : "● Out of Stock"}
+            {product.availableForSale ? "● Available" : "● Out of Stock"}
           </p>
 
-          {product.inStock ? (
+          {product.availableForSale && variant ? (
             <AddToCartButton
               product={{
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                image: product.image,
+                id: variant.id,
+                variantId: variant.id,
+                name: product.title,
+                price,
+                image: product.featuredImage?.url ?? "",
               }}
             />
           ) : (
             <button
               disabled
               style={{
-                padding: "13px 24px",
+                width: "100%",
+                padding: 16,
                 background: "#cccccc",
                 color: "#666666",
                 border: "none",
-                borderRadius: 6,
+                borderRadius: 8,
                 cursor: "not-allowed",
                 fontWeight: 700,
               }}

@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState } from "react";
 import { useCart } from "./CartContext";
 
 type Props = {
   product: {
     id: string;
+    variantId?: string;
     name: string;
     price: number;
     image: string;

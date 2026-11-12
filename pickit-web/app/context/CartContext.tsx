@@ -11,6 +11,7 @@ import {
 
 type CartItem = {
   id: string;
+  variantId?: string;
   name: string;
   price: number;
   image: string;
@@ -34,7 +35,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load saved cart when website opens
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem("pickit-cart");
@@ -53,14 +53,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Save cart whenever it changes
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem("pickit-cart", JSON.stringify(cart));
     }
   }, [cart, isLoaded]);
 
-  // Add product to cart
   function addToCart(item: Omit<CartItem, "quantity">) {
     setCart((currentCart) => {
       const existing = currentCart.find(
@@ -79,7 +77,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  // Increase product quantity
   function increaseQuantity(id: string) {
     setCart((currentCart) =>
       currentCart.map((item) =>
@@ -90,7 +87,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  // Decrease product quantity
   function decreaseQuantity(id: string) {
     setCart((currentCart) =>
       currentCart
@@ -103,14 +99,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  // Remove product completely
   function removeFromCart(id: string) {
     setCart((currentCart) =>
       currentCart.filter((item) => item.id !== id)
     );
   }
 
-  // Calculate total cart quantity
   const cartCount = cart.reduce(
     (total, item) => total + item.quantity,
     0

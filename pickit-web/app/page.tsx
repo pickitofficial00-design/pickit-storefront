@@ -3,12 +3,36 @@
 
 import { useCart } from "./context/CartContext";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { products } from "./products";
+import { useEffect, useMemo, useState } from "react";
 
-const categories = ["All", "Electronics", "Fashion", "Home"];
+type Product = {
+  id: string;
+  handle: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  variantId: string | null;
+  rating: number;
+  brand: string;
+  inStock: boolean;
+  discount: number;
+  category: string;
+  image: string;
+  imageAlt: string;
+};
+
+const categories = ["All"];
 
 export default function Home() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState("");
+  const [loadMoreError, setLoadMoreError] = useState("");
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasNextPage, setHasNextPage] = useState(false);
+
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [sort, setSort] = useState("featured");
@@ -20,6 +44,81 @@ export default function Home() {
   const [minDiscount, setMinDiscount] = useState("0");
 
   const { cartCount } = useCart();
+
+  async function loadProducts(cursor?: string) {
+    const isFirstPage = !cursor;
+
+    try {
+      if (isFirstPage) {
+        setLoading(true);
+        setError("");
+      } else {
+        setLoadingMore(true);
+        setLoadMoreError("");
+      }
+
+      const url = cursor
+        ? `/api/shopify-test?cursor=${encodeURIComponent(cursor)}`
+        : "/api/shopify-test";
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error("Could not load Shopify products.");
+      }
+
+      const data = await response.json();
+
+      if (!Array.isArray(data.products)) {
+        throw new Error("Invalid product data received.");
+      }
+
+      setProducts((current) =>
+        isFirstPage ? data.products : [...current, ...data.products]
+      );
+
+      setHasNextPage(Boolean(data.hasNextPage));
+      setNextCursor(data.nextCursor ?? null);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while loading products.";
+
+      if (isFirstPage) {
+        setError(message);
+      } else {
+        setLoadMoreError(message);
+      }
+    } finally {
+      if (isFirstPage) {
+        setLoading(false);
+      } else {
+        setLoadingMore(false);
+      }
+    }
+  }
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const availableCategories = useMemo(
+    () => [
+      ...categories,
+      ...new Set(
+        products
+          .map((product) => product.category)
+          .filter((item) => item && item !== "All")
+      ),
+    ],
+    [products]
+  );
+
+  const availableBrands = useMemo(
+    () => [...new Set(products.map((product) => product.brand).filter(Boolean))],
+    [products]
+  );
 
   const invalidPriceRange =
     minPrice !== "" &&
@@ -74,6 +173,7 @@ export default function Home() {
 
     return result;
   }, [
+    products,
     search,
     category,
     sort,
@@ -104,7 +204,7 @@ export default function Home() {
       </div>
 
       <header className="header">
-        <a className="logo" href="#">
+        <a className="logo" href="/">
           PICK<span>IT.</span>
         </a>
 
@@ -118,13 +218,14 @@ export default function Home() {
         <Link className="cart" href="/cart">
           🛒 Cart ({cartCount})
         </Link>
+
         <Link className="cart" href="/account">
-  👤 Account
-</Link>
+          👤 Account
+        </Link>
       </header>
 
       <nav className="nav">
-        {categories.map((item) => (
+        {availableCategories.map((item) => (
           <button
             key={item}
             className={category === item ? "selected" : ""}
@@ -190,7 +291,7 @@ export default function Home() {
         </p>
 
         <div className="filters">
-          {categories.map((item) => (
+          {availableCategories.map((item) => (
             <button
               key={item}
               className={category === item ? "selected" : ""}
@@ -249,13 +350,12 @@ export default function Home() {
             onChange={(event) => setSelectedBrand(event.target.value)}
           >
             <option value="All">All Brands</option>
-            <option value="SoundMax">SoundMax</option>
-            <option value="TimePro">TimePro</option>
-            <option value="UrbanTrail">UrbanTrail</option>
-            <option value="VisionX">VisionX</option>
-            <option value="LumiHome">LumiHome</option>
-            <option value="HydroPeak">HydroPeak</option>
-            <option value="GameCore">GameCore</option>
+
+            {availableBrands.map((brand) => (
+              <option key={brand} value={brand}>
+                {brand}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -308,39 +408,85 @@ export default function Home() {
           </select>
         </div>
 
-        <p className="product-count">
-          Showing {filtered.length} products
-        </p>
+        {loading ? (
+          <p className="empty">Loading products from Shopify...</p>
+        ) : error ? (
+          <p className="price-error">{error}</p>
+        ) : (
+          <>
+            <p className="product-count">
+              Showing {filtered.length} products
+            </p>
 
-        <div className="grid">
-          {filtered.map((product) => (
-            <article className="product" key={product.id}>
-              <Link href={`/product/${product.id}`}>
-                <div className="product-image">
-                  <img src={product.image} alt={product.name} />
-                </div>
-              </Link>
+            <div className="grid">
+              {filtered.map((product) => (
+                <article className="product" key={product.id}>
+                  <Link href={`/product/${product.handle}`}>
+                    <div className="product-image">
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.imageAlt || product.name}
+                        />
+                      ) : (
+                        <span className="no-image">No image available</span>
+                      )}
+                    </div>
+                  </Link>
 
-              <div className="product-info">
-                <small>{product.category}</small>
+                  <div className="product-info">
+                    <small>{product.category}</small>
 
-                <Link href={`/product/${product.id}`}>
-                  <h3>{product.name}</h3>
-                </Link>
+                    <Link href={`/product/${product.handle}`}>
+                      <h3>{product.name}</h3>
+                    </Link>
+
+                    <p className="product-price">
+                      {new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: product.currency || "USD",
+                      }).format(product.price)}
+                    </p>
+
+                    <p className={product.inStock ? "stock" : "out-stock"}>
+                      {product.inStock ? "In Stock" : "Out of Stock"}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {filtered.length === 0 && (
+              <p className="empty">
+                No products found. Try another search.
+              </p>
+            )}
+
+            {hasNextPage && (
+              <div className="load-more-container">
+                <button
+                  className="load-more"
+                  onClick={() => {
+                    if (nextCursor && !loadingMore) {
+                      loadProducts(nextCursor);
+                    }
+                  }}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? "Loading..." : "Load More Products"}
+                </button>
+
+                {loadMoreError && (
+                  <p className="price-error">{loadMoreError}</p>
+                )}
               </div>
-            </article>
-          ))}
-        </div>
-
-        {filtered.length === 0 && (
-          <p className="empty">
-            No products found. Try another search.
-          </p>
+            )}
+          </>
         )}
       </section>
 
       <footer>
-        <a className="logo footer-logo" href="#">
+        <a className="logo footer-logo" href="/">
           PICK<span>IT.</span>
         </a>
 
@@ -680,9 +826,51 @@ export default function Home() {
           text-decoration: none;
         }
 
+        .product-price {
+          font-weight: 700;
+          margin: 10px 0;
+        }
+
+        .stock {
+          color: #16803c;
+          font-size: 13px;
+        }
+
+        .out-stock {
+          color: #dc2626;
+          font-size: 13px;
+        }
+
+        .no-image {
+          display: grid;
+          place-items: center;
+          height: 100%;
+          color: #777;
+          font-size: 13px;
+        }
+
         .empty {
           color: #777;
           padding: 30px 0;
+        }
+
+        .load-more-container {
+          text-align: center;
+          margin-top: 35px;
+        }
+
+        .load-more {
+          background: #f26b21;
+          color: white;
+          border: 0;
+          border-radius: 6px;
+          padding: 15px 28px;
+          font-weight: bold;
+        }
+
+        .load-more:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         footer {

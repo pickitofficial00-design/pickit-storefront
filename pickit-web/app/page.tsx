@@ -5,6 +5,39 @@ import { useCart } from "./context/CartContext";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+const HERO_SLIDES = [
+  {
+    tag: "NEW DROP",
+    title: "Everyday Streetwear.",
+    image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1400&q=85",
+  },
+  {
+    tag: "TRENDING IN USA",
+    title: "Smart Tech & Gear.",
+    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1400&q=85",
+  },
+  {
+    tag: "BESTSELLER",
+    title: "Clean Daily Staples.",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1400&q=85",
+  },
+  {
+    tag: "ACTIVE STYLE",
+    title: "Built For Movement.",
+    image: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1400&q=85",
+  },
+  {
+    tag: "STUDIO EDIT",
+    title: "Minimalist Essentials.",
+    image: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1400&q=85",
+  },
+  {
+    tag: "USA FAVORITE",
+    title: "Next-Gen Upgrades.",
+    image: "https://images.unsplash.com/photo-1488161628813-04466f872be2?w=1400&q=85",
+  },
+];
+
 type Product = {
   id: string;
   handle: string;
@@ -43,10 +76,16 @@ export default function Home() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [addedId, setAddedId] = useState<string | null>(null);
   const [heroIdx, setHeroIdx] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   const { addToCart, cartCount } = useCart();
-  const featuredProducts = useMemo(() => products.filter((p) => p.image).slice(0, 4), [products]);
-  const activeHero = featuredProducts[heroIdx % Math.max(featuredProducts.length, 1)];
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setHeroIdx((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 3500);
+    return () => clearInterval(id);
+  }, []);
 
   async function loadProducts(cursor?: string) {
     const isFirstPage = !cursor;
@@ -220,82 +259,78 @@ export default function Home() {
 
       <main>
         <section className="pk-hero-wrap">
-          <div className="pk-hero">
-            <div className="pk-hero-copy">
-              <div className="pk-hero-pill">
-                <span className="pk-stars">★★★★★</span>
-                <span>Curated Everyday Upgrades</span>
-              </div>
-
-              <h1>Find it. Love it. <span>PICKIT.</span></h1>
-
-              <p className="pk-hero-sub">
-                Smart gadgets, everyday problem-solvers, and clean wardrobe staples—handpicked for quality and shipped straight to your door.
-              </p>
-
-              <div className="pk-hero-ctas">
-                <button
-                  type="button"
-                  className="pk-btn-primary"
-                  onClick={() => document.getElementById("products")?.scrollIntoView({ behavior: "smooth" })}
-                >
-                  Shop Collection →
-                </button>
-                <Link href="/account/orders" className="pk-btn-secondary">Track Order</Link>
-              </div>
-            </div>
-
-            <div className="pk-hero-showcase">
-              {activeHero ? (
-                <>
-                  <div className="pk-showcase-top">
-                    <span className="pk-showcase-badge">🔥 TOP PICK</span>
-                    <span className="pk-showcase-ship">🇺🇸 Fast US Delivery</span>
-                  </div>
-                  <Link href={`/product/${activeHero.handle}`} className="pk-showcase-img-wrap">
-                    <img src={activeHero.image} alt={activeHero.imageAlt || activeHero.name} />
-                  </Link>
-                  <div className="pk-showcase-info">
-                    <div>
-                      <Link href={`/product/${activeHero.handle}`} className="pk-showcase-name">
-                        {activeHero.name}
-                      </Link>
-                      <div className="pk-showcase-price">
-                        {new Intl.NumberFormat("en-US", { style: "currency", currency: activeHero.currency || "USD" }).format(activeHero.price)}
-                        <span> • Ready to Ship</span>
-                      </div>
-                    </div>
+          <div
+            className="pk-carousel"
+            onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+            onTouchEnd={(e) => {
+              if (touchStartX === null) return;
+              const diff = touchStartX - e.changedTouches[0].clientX;
+              if (Math.abs(diff) > 40) {
+                setHeroIdx((prev) =>
+                  diff > 0
+                    ? (prev + 1) % HERO_SLIDES.length
+                    : (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length
+                );
+              }
+              setTouchStartX(null);
+            }}
+          >
+            <div
+              className="pk-carousel-track"
+              style={{ transform: `translateX(-${heroIdx * 100}%)` }}
+            >
+              {HERO_SLIDES.map((slide, i) => (
+                <div className="pk-slide" key={i}>
+                  <img src={slide.image} alt={slide.title} />
+                  <div className="pk-slide-overlay" />
+                  <div className="pk-slide-content">
+                    <span className="pk-slide-tag">{slide.tag}</span>
+                    <h2>{slide.title}</h2>
                     <button
                       type="button"
-                      className="pk-showcase-buy"
-                      onClick={() => handleQuickAdd(activeHero)}
+                      className="pk-slide-cta"
+                      onClick={() =>
+                        document
+                          .getElementById("products")
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      }
                     >
-                      {addedId === activeHero.id ? "✓ Added" : "+ Add"}
+                      Shop Now →
                     </button>
                   </div>
-                  {featuredProducts.length > 1 && (
-                    <div className="pk-showcase-thumbs">
-                      {featuredProducts.map((fp, i) => (
-                        <button
-                          key={fp.id}
-                          type="button"
-                          onClick={() => setHeroIdx(i)}
-                          className={`pk-thumb-btn ${i === heroIdx % featuredProducts.length ? "active" : ""}`}
-                          aria-label={`Preview ${fp.name}`}
-                        >
-                          <img src={fp.image} alt={fp.name} />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="pk-showcase-loading">
-                  <span>✨</span>
-                  <strong>Loading Featured Picks...</strong>
-                  <small>Nationwide USA Tracked Shipping</small>
                 </div>
-              )}
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="pk-arrow pk-prev"
+              aria-label="Previous slide"
+              onClick={() =>
+                setHeroIdx((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)
+              }
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="pk-arrow pk-next"
+              aria-label="Next slide"
+              onClick={() => setHeroIdx((prev) => (prev + 1) % HERO_SLIDES.length)}
+            >
+              ›
+            </button>
+
+            <div className="pk-dots">
+              {HERO_SLIDES.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={`Slide ${i + 1}`}
+                  className={`pk-dot-btn ${i === heroIdx ? "active" : ""}`}
+                  onClick={() => setHeroIdx(i)}
+                />
+              ))}
             </div>
           </div>
         </section>
@@ -505,20 +540,7 @@ export default function Home() {
           )}
         </section>
 
-        <section className="pk-story-wrap">
-          <div className="pk-story">
-            <span className="pk-eyebrow">WHY SHOP PICKIT</span>
-            <h2>Less clutter. Better picks<span>.</span></h2>
-            <p>
-              We test and curate practical gadgets, daily lifestyle upgrades, and clean essentials so you spend less time scrolling and more time enjoying products that actually deliver.
-            </p>
-            <div className="pk-story-stats">
-              <div><strong>1–3 Days</strong><span>Fast Order Processing</span></div>
-              <div><strong>30 Days</strong><span>Return &amp; Exchange Window</span></div>
-              <div><strong>24/7</strong><span>AI &amp; Email Support</span></div>
-            </div>
-          </div>
-        </section>
+        
       </main>
 
       <footer className="pk-footer">

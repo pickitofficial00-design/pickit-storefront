@@ -1,0 +1,43 @@
+.ac-page { min-height: 100vh; background: #faf9f7; color: #171717; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; }
+.ac-header { background: #fff; border-bottom: 1px solid #eceae6; position: sticky; top: 0; z-index: 30; }
+.ac-header-inner { max-width: 960px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ac-logo { font-size: 25px; font-weight: 900; letter-spacing: -1.5px; color: #141414; text-decoration: none; }
+.ac-logo span { color: #f26b21; }
+.ac-back { font-size: 13px; font-weight: 700; color: #171717; text-decoration: none; padding: 8px 14px; border: 1px solid #e5e3de; border-radius: 999px; background: #fff; }
+.ac-back:hover { border-color: #171717; }
+.ac-main { max-width: 960px; width: 100%; margin: 0 auto; padding: 28px 20px 60px; flex: 1; }
+.ac-hero-card { background: linear-gradient(135deg, #161616 0%, #24211e 100%); color: #fff; border-radius: 20px; padding: 28px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.ac-user-left { display: flex; align-items: center; gap: 16px; }
+.ac-avatar { width: 58px; height: 58px; border-radius: 50%; background: linear-gradient(135deg, #f26b21, #ff8c42); color: #fff; font-size: 22px; font-weight: 900; display: grid; place-items: center; flex-shrink: 0; }
+.ac-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: #f26b21; text-transform: uppercase; }
+.ac-hero-card h1 { margin: 4px 0; font-size: clamp(22px, 4vw, 28px); letter-spacing: -0.6px; }
+.ac-email { margin: 0; font-size: 13px; color: #c9c6c1; }
+.ac-signout-btn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.22); border-radius: 10px; padding: 10px 18px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.18s; }
+.ac-signout-btn:hover { background: #dc2626; border-color: #dc2626; }
+.ac-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+.ac-card { background: #fff; border: 1px solid #eceae6; border-radius: 16px; padding: 22px; text-decoration: none; color: #171717; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; transition: transform 0.18s, box-shadow 0.18s; }
+.ac-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,0.05); border-color: #dedcd7; }
+.ac-card-top { display: flex; align-items: center; justify-content: space-between; }
+.ac-icon { width: 42px; height: 42px; border-radius: 12px; background: #fff4ed; display: grid; place-items: center; font-size: 20px; }
+.ac-pill { background: #f3f2ef; color: #171717; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
+.ac-card h2 { margin: 0 0 4px; font-size: 17px; }
+.ac-card p { margin: 0; font-size: 13px; color: #666; line-height: 1.5; }
+.ac-link-text { font-size: 13px; font-weight: 700; color: #f26b21; }
+.ac-center-box { max-width: 440px; margin: 48px auto; background: #fff; border: 1px solid #eceae6; border-radius: 20px; padding: 36px 26px; text-align: center; }
+.ac-center-box h1 { margin: 10px 0 8px; font-size: 24px; }
+.ac-center-box p { margin: 0 0 22px; color: #666; font-size: 14px; line-height: 1.6; }
+.ac-primary-btn { display: inline-block; background: #f26b21; color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 13px 26px; border-radius: 12px; }
+.ac-order-list { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+.ac-order-card { background: #fff; border: 1px solid #eceae6; border-radius: 16px; padding: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ac-order-card h2 { margin: 0 0 4px; font-size: 18px; }
+.ac-order-meta { font-size: 13px; color: #666; margin: 0; }
+.ac-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.ac-status { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: #f3f2ef; color: #333; text-transform: uppercase; letter-spacing: 0.4px; }
+.ac-status.paid, .ac-status.fulfilled { background: #dcfce7; color: #15803d; }
+.ac-order-total { font-size: 18px; font-weight: 900; color: #141414; }
+@media (max-width: 640px) {
+  .ac-main { padding: 18px 14px 48px; }
+  .ac-hero-card { padding: 20px; }
+  .ac-grid { grid-template-columns: 1fr; }
+  .ac-signout-btn { width: 100%; }
+}

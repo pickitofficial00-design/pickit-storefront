@@ -1,4 +1,4 @@
-
+import "./account.css";
 import { connection } from "next/server";
 import Link from "next/link";
 import { loadAccount } from "../../lib/account";
@@ -10,7 +10,6 @@ export default async function AccountPage({
 }: {
   searchParams: Promise<{ refreshed?: string }>;
 }) {
-  // Force request-time rendering instead of prerendering.
   await connection();
 
   const params = await searchParams;
@@ -18,63 +17,126 @@ export default async function AccountPage({
 
   if (result.status === "signed-out") {
     return (
-      <main style={{ padding: 40, textAlign: "center" }}>
-        <h1>Welcome to PICKIT</h1>
-        <p>Please sign in to view your account.</p>
-        <a href="/account/login">Sign In</a>
-      </main>
+      <div className="ac-page">
+        <header className="ac-header">
+          <div className="ac-header-inner">
+            <Link className="ac-logo" href="/">PICK<span>IT.</span></Link>
+            <Link className="ac-back" href="/">← Back to Store</Link>
+          </div>
+        </header>
+        <main className="ac-main">
+          <div className="ac-center-box">
+            <span className="ac-eyebrow">MEMBER ACCESS</span>
+            <h1>Sign in to PICKIT</h1>
+            <p>Access your order history, live shipment tracking, and saved account details.</p>
+            <a href="/account/login" className="ac-primary-btn">Continue to Sign In →</a>
+          </div>
+        </main>
+      </div>
     );
   }
 
   if (result.status === "error") {
     return (
-      <main style={{ padding: 40 }}>
-        <h1>Unable to load your account</h1>
-        <p>Please try again later.</p>
-      </main>
+      <div className="ac-page">
+        <header className="ac-header">
+          <div className="ac-header-inner">
+            <Link className="ac-logo" href="/">PICK<span>IT.</span></Link>
+            <Link className="ac-back" href="/">← Back to Store</Link>
+          </div>
+        </header>
+        <main className="ac-main">
+          <div className="ac-center-box">
+            <h1>Unable to load account</h1>
+            <p>Something interrupted your session. Please refresh or return to the store.</p>
+            <Link href="/" className="ac-primary-btn">Return Home</Link>
+          </div>
+        </main>
+      </div>
     );
   }
 
   const { customer } = result;
+  const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim();
+  const email = customer.emailAddress?.emailAddress ?? "No email available";
+  const initial = (fullName || email || "P").charAt(0).toUpperCase();
+  const orderCount = customer.orders?.nodes?.length ?? 0;
 
   return (
-    <main style={{ maxWidth: 700, margin: "40px auto", padding: 20 }}>
-      <h1>My PICKIT Account</h1>
+    <div className="ac-page">
+      <header className="ac-header">
+        <div className="ac-header-inner">
+          <Link className="ac-logo" href="/">PICK<span>IT.</span></Link>
+          <Link className="ac-back" href="/">← Continue Shopping</Link>
+        </div>
+      </header>
 
-      <section style={{ marginTop: 30 }}>
-        <h2>Profile</h2>
-        <p>
-          Name: {customer.firstName} {customer.lastName}
-        </p>
-        <p>
-          Email: {customer.emailAddress?.emailAddress ?? "No email available"}
-        </p>
-      </section>
+      <main className="ac-main">
+        <section className="ac-hero-card">
+          <div className="ac-user-left">
+            <div className="ac-avatar">{initial}</div>
+            <div>
+              <span className="ac-eyebrow">PICKIT MEMBER</span>
+              <h1>{fullName || "Welcome Back"}</h1>
+              <p className="ac-email">{email}</p>
+            </div>
+          </div>
 
-      <section style={{ marginTop: 30 }}>
-        <h2>Orders</h2>
-        <a href="/account/orders">View My Orders</a>
-      </section>
+          <form action="/account/logout" method="POST">
+            <button type="submit" className="ac-signout-btn">Sign Out</button>
+          </form>
+        </section>
 
-      <form action="/account/logout" method="POST" style={{ marginTop: 30 }}>
-        <button
-          type="submit"
-          style={{
-            padding: "12px 24px",
-            background: "#171717",
-            color: "white",
-            border: 0,
-            borderRadius: 8,
-            cursor: "pointer",
-          }}
-        >
-          Sign Out
-        </button>
-      </form>
+        <section className="ac-grid">
+          <Link href="/account/orders" className="ac-card">
+            <div className="ac-card-top">
+              <div className="ac-icon">📦</div>
+              <span className="ac-pill">{orderCount} {orderCount === 1 ? "Order" : "Orders"}</span>
+            </div>
+            <div>
+              <h2>Order History &amp; Tracking</h2>
+              <p>Check order status, payment receipts, and shipment updates.</p>
+            </div>
+            <span className="ac-link-text">View My Orders →</span>
+          </Link>
 
-      <p style={{ marginTop: 30 }}>
-        <Link href="/">Continue Shopping</Link>
-      </p>
-    </main>
+          <Link href="/cart" className="ac-card">
+            <div className="ac-card-top">
+              <div className="ac-icon">🛒</div>
+              <span className="ac-pill">Bag</span>
+            </div>
+            <div>
+              <h2>Your Shopping Cart</h2>
+              <p>Review saved items and proceed to secure encrypted checkout.</p>
+            </div>
+            <span className="ac-link-text">Open Cart →</span>
+          </Link>
+
+          <Link href="/policies/shipping" className="ac-card">
+            <div className="ac-card-top">
+              <div className="ac-icon">🚚</div>
+              <span className="ac-pill">6–12 Days US</span>
+            </div>
+            <div>
+              <h2>Shipping &amp; Returns</h2>
+              <p>Tracked US delivery and our 30-day hassle-free return policy.</p>
+            </div>
+            <span className="ac-link-text">Read Policies →</span>
+          </Link>
+
+          <Link href="/contact" className="ac-card">
+            <div className="ac-card-top">
+              <div className="ac-icon">💬</div>
+              <span className="ac-pill">24h Reply</span>
+            </div>
+            <div>
+              <h2>Customer Support</h2>
+              <p>Need help with an order? Reach us anytime or tap the AI orb.</p>
+            </div>
+            <span className="ac-link-text">Contact Support →</span>
+          </Link>
+        </section>
+      </main>
+    </div>
   );
 }

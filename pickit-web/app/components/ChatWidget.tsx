@@ -15,7 +15,10 @@ const QUICK_PROMPTS = [
 ];
 
 function renderMessageWithLinks(text: string) {
-  const parts = text.split(/(\/(?:product\/[a-zA-Z0-9-_]+|policies\/[a-zA-Z0-9-_]+|account\/orders|contact|cart))/g);
+  const cleaned = text.replace(/\*\*/g, "");
+  const parts = cleaned.split(
+    /(\/(?:product\/[a-zA-Z0-9-_]+|policies\/[a-zA-Z0-9-_]+|account\/orders|contact|cart))/g
+  );
   return parts.map((part, idx) => {
     if (part.startsWith("/")) {
       return (
@@ -61,21 +64,19 @@ export default function ChatWidget() {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 12000);
       const res = await fetch("/api/chat", {
-        signal: controller.signal,
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({ messages: updated }),
       });
-
       clearTimeout(timer);
+
       const data = await res.json();
       setMessages([
         ...updated,
         {
           role: "assistant",
-          content:
-            data.reply ||
-            "How can I help you with PICKIT today?",
+          content: data.reply || "How can I help you with PICKIT today?",
         },
       ]);
     } catch {
@@ -96,8 +97,8 @@ export default function ChatWidget() {
     <div
       style={{
         position: "fixed",
-        bottom: 20,
-        right: 20,
+        bottom: 22,
+        right: 22,
         zIndex: 9999,
         fontFamily: "Arial, sans-serif",
       }}
@@ -109,13 +110,13 @@ export default function ChatWidget() {
             maxWidth: "calc(100vw - 32px)",
             height: 460,
             background: "#ffffff",
-            borderRadius: 16,
-            boxShadow: "0 16px 40px rgba(0,0,0,0.2)",
+            borderRadius: 18,
+            boxShadow: "0 18px 44px rgba(0,0,0,0.22)",
             border: "1px solid #e5e5e5",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            marginBottom: 12,
+            marginBottom: 14,
           }}
         >
           <div
@@ -128,18 +129,34 @@ export default function ChatWidget() {
               alignItems: "center",
             }}
           >
-            <div>
-              <div style={{ fontWeight: 900, fontSize: 15 }}>
-                PICK<span style={{ color: "#f26b21" }}>IT</span> Assistant
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #f26b21, #ff8c42)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 900,
+                  fontSize: 12,
+                  color: "#fff",
+                }}
+              >
+                AI
               </div>
-              <div style={{ fontSize: 11, color: "#bbb" }}>
-                ● Online — Instant Product &amp; Order Help
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14 }}>AI Assistant</div>
+                <div style={{ fontSize: 11, color: "#4ade80" }}>
+                  ● Online
+                </div>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              aria-label="Close chat"
+              aria-label="Close AI chat"
               style={{
                 background: "transparent",
                 border: "none",
@@ -172,7 +189,7 @@ export default function ChatWidget() {
                   color: m.role === "user" ? "#ffffff" : "#171717",
                   border: m.role === "user" ? "none" : "1px solid #e8e8e8",
                   padding: "10px 13px",
-                  borderRadius: 12,
+                  borderRadius: 14,
                   fontSize: 13,
                   lineHeight: 1.5,
                   maxWidth: "85%",
@@ -242,11 +259,11 @@ export default function ChatWidget() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about products, shipping..."
+              placeholder="Ask AI anything..."
               style={{
                 flex: 1,
                 border: "1px solid #ddd",
-                borderRadius: 8,
+                borderRadius: 10,
                 padding: "9px 12px",
                 fontSize: 13,
                 outline: "none",
@@ -259,7 +276,7 @@ export default function ChatWidget() {
                 background: "#171717",
                 color: "#ffffff",
                 border: "none",
-                borderRadius: 8,
+                borderRadius: 10,
                 padding: "0 14px",
                 fontWeight: 700,
                 fontSize: 13,
@@ -275,23 +292,54 @@ export default function ChatWidget() {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
+        aria-label={open ? "Close AI" : "Open AI"}
         style={{
-          background: "#f26b21",
+          width: 58,
+          height: 58,
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, #171717 0%, #2b2b2b 100%)",
           color: "#ffffff",
-          border: "none",
-          borderRadius: 999,
-          padding: "13px 18px",
-          fontWeight: 800,
-          fontSize: 14,
-          boxShadow: "0 8px 24px rgba(242,107,33,0.4)",
+          border: "2px solid #f26b21",
+          boxShadow: "0 10px 28px rgba(0, 0, 0, 0.28)",
           cursor: "pointer",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
-          gap: 8,
+          justifyContent: "center",
           marginLeft: "auto",
+          position: "relative",
         }}
       >
-        💬 {open ? "Close" : "Ask PICKIT AI"}
+        {open ? (
+          <span style={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>✕</span>
+        ) : (
+          <>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#f26b21"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3z" />
+            </svg>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 900,
+                letterSpacing: 0.8,
+                color: "#ffffff",
+                marginTop: 1,
+                lineHeight: 1,
+              }}
+            >
+              AI
+            </span>
+          </>
+        )}
       </button>
     </div>
   );

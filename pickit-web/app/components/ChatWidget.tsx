@@ -58,12 +58,16 @@ export default function ChatWidget() {
     setLoading(true);
 
     try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
       const res = await fetch("/api/chat", {
+        signal: controller.signal,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: updated }),
       });
 
+      clearTimeout(timer);
       const data = await res.json();
       setMessages([
         ...updated,

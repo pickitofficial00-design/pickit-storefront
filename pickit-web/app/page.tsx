@@ -499,6 +499,14 @@ const matchesSearch = [
 
         <p>Discover more. Choose better.</p>
 
+        <div style={{ display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap", margin: "16px 0", fontSize: 13 }}>
+          <Link href="/policies/shipping" style={{ color: "#ddd", textDecoration: "none" }}>Shipping Policy</Link>
+          <Link href="/policies/refund" style={{ color: "#ddd", textDecoration: "none" }}>Refund &amp; Return Policy</Link>
+          <Link href="/policies/privacy" style={{ color: "#ddd", textDecoration: "none" }}>Privacy Policy</Link>
+          <Link href="/policies/terms" style={{ color: "#ddd", textDecoration: "none" }}>Terms of Service</Link>
+          <Link href="/contact" style={{ color: "#ddd", textDecoration: "none" }}>Contact Us</Link>
+        </div>
+
         <small>© 2026 PICKIT. All rights reserved.</small>
       </footer>
 

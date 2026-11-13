@@ -29,42 +29,11 @@ type ChatMessage = {
   content: string;
 };
 
-async function pickGeminiModel(apiKey: string): Promise<string> {
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(
-        apiKey
-      )}`,
-      { signal: AbortSignal.timeout(3000) }
-    );
-    if (!res.ok) return "gemini-2.5-flash";
-    const data = await res.json();
-    const models: Array<{
-      name?: string;
-      supportedGenerationMethods?: string[];
-    }> = Array.isArray(data?.models) ? data.models : [];
-
-    const valid = models
-      .filter(
-        (m) =>
-          typeof m.name === "string" &&
-          m.name.includes("gemini") &&
-          Array.isArray(m.supportedGenerationMethods) &&
-          m.supportedGenerationMethods.includes("generateContent")
-      )
-      .map((m) => m.name!.replace(/^models\//, ""));
-
-    return (
-      
-      valid.filter((n)=>!/tts|image|audio|embedding|robotics|computer-use|veo|imagen|live|native/.test(n)).find((n)=>n.includes("flash")) ||
-      valid.find((n) => n.includes("flash")) ||
-      valid[0] ||
-      "gemini-2.5-flash"
-    );
-  } catch {
-    return "gemini-2.5-flash";
-  }
-}
+const MODELS = [
+  "gemini-2.5-flash-lite",
+  "gemini-3-flash-preview",
+  "gemma-3-27b-it",
+];
 
 export async function POST(request: Request) {
   try {
@@ -148,43 +117,50 @@ RULES:
       parts: [{ text: m.content }],
     }));
 
-    const model = await pickGeminiModel(apiKey);
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
-        apiKey
-      )}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(8000),
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: systemInstruction }],
-          },
-          contents,
-          generationConfig: {
-            temperature: 0.5,
-            maxOutputTokens: 450,
-          },
-        }),
-      }
-    );
+    for (const model of MODELS) {
+      const payload = model.startsWith("gemma")
+        ? {
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: systemInstruction + "\n\nCustomer: " + lastUserMessage }],
+              },
+            ],
+            generationConfig: { temperature: 0.5, maxOutputTokens: 450 },
+          }
+        : {
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            contents,
+            generationConfig: { temperature: 0.5, maxOutputTokens: 450 },
+          };
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      console.error(`Gemini (${model}) error:`, geminiRes.status, errText);
-      return NextResponse.json({
-        reply:
-          "I'm having trouble connecting right now. You can browse products on our homepage or email pickitofficial00@gmail.com for quick help!",
-      });
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
+          apiKey
+        )}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(4500),
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (res.ok) {
+        const geminiData = await res.json();
+        const reply =
+          geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
+          "How can I help you with PICKIT products, shipping, or returns today?";
+        return NextResponse.json({ reply });
+      }
+
+      console.error(`Gemini (${model}) error:`, res.status, await res.text());
     }
 
-    const geminiData = await geminiRes.json();
-    const reply =
-      geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
-      "How can I help you with PICKIT products, shipping, or returns today?";
-
-    return NextResponse.json({ reply });
+    return NextResponse.json({
+      reply:
+        "I'm having trouble connecting right now. You can browse products on our homepage or email pickitofficial00@gmail.com for quick help!",
+    });
   } catch (err) {
     console.error("PICKIT AI route error:", err);
     return NextResponse.json({

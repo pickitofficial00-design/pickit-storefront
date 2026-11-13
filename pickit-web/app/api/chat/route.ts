@@ -27,6 +27,42 @@ type ChatMessage = {
   content: string;
 };
 
+async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(
+        apiKey
+      )}`
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    const models: Array<{
+      name?: string;
+      supportedGenerationMethods?: string[];
+    }> = Array.isArray(data?.models) ? data.models : [];
+
+    const valid = models
+      .filter(
+        (m) =>
+          typeof m.name === "string" &&
+          m.name.includes("gemini") &&
+          Array.isArray(m.supportedGenerationMethods) &&
+          m.supportedGenerationMethods.includes("generateContent")
+      )
+      .map((m) => m.name!.replace(/^models\//, ""));
+
+    const flashFirst = [
+      ...valid.filter((n) => n.includes("flash") && !n.includes("lite")),
+      ...valid.filter((n) => n.includes("flash")),
+      ...valid,
+    ];
+
+    return Array.from(new Set(flashFirst)).slice(0, 4);
+  } catch {
+    return [];
+  }
+}
+
 async function callGemini(
   apiKey: string,
   model: string,
@@ -139,39 +175,34 @@ RULES:
       parts: [{ text: m.content }],
     }));
 
-    let geminiRes = await callGemini(
-      apiKey,
-      "gemini-2.5-flash",
-      systemInstruction,
-      contents
-    );
+    const discovered = await getAvailableGeminiModels(apiKey);
+    const candidates =
+      discovered.length > 0
+        ? discovered
+        : ["gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-pro-latest"];
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      console.error("Gemini 2.5-flash failed:", geminiRes.status, errText);
-      geminiRes = await callGemini(
+    for (const model of candidates) {
+      const geminiRes = await callGemini(
         apiKey,
-        "gemini-2.0-flash",
+        model,
         systemInstruction,
         contents
       );
+      if (geminiRes.ok) {
+        const geminiData = await geminiRes.json();
+        const reply =
+          geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
+          "How can I help you with PICKIT products, shipping, or returns today?";
+        return NextResponse.json({ reply });
+      }
+      const errText = await geminiRes.text();
+      console.error(`Gemini ${model} failed:`, geminiRes.status, errText);
     }
 
-    if (!geminiRes.ok) {
-      const errText2 = await geminiRes.text();
-      console.error("Gemini 2.0-flash failed:", geminiRes.status, errText2);
-      return NextResponse.json({
-        reply:
-          "I'm having trouble connecting right now. You can browse products on our homepage or email pickitofficial00@gmail.com for quick help!",
-      });
-    }
-
-    const geminiData = await geminiRes.json();
-    const reply =
-      geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
-      "How can I help you with PICKIT products, shipping, or returns today?";
-
-    return NextResponse.json({ reply });
+    return NextResponse.json({
+      reply:
+        "I'm having trouble connecting right now. You can browse products on our homepage or email pickitofficial00@gmail.com for quick help!",
+    });
   } catch (err) {
     console.error("PICKIT AI route error:", err);
     return NextResponse.json({

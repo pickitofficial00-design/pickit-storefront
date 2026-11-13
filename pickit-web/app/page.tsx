@@ -42,8 +42,11 @@ export default function Home() {
   const [minDiscount, setMinDiscount] = useState("0");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [addedId, setAddedId] = useState<string | null>(null);
+  const [heroIdx, setHeroIdx] = useState(0);
 
   const { addToCart, cartCount } = useCart();
+  const featuredProducts = useMemo(() => products.filter((p) => p.image).slice(0, 4), [products]);
+  const activeHero = featuredProducts[heroIdx % Math.max(featuredProducts.length, 1)];
 
   async function loadProducts(cursor?: string) {
     const isFirstPage = !cursor;
@@ -242,15 +245,57 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="pk-hero-visual">
-              <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200&q=85" alt="PICKIT modern everyday tech and lifestyle essentials" />
-              <div className="pk-hero-float">
-                <span className="pk-float-dot" />
-                <div>
-                  <strong>Nationwide USA Tracked Shipping</strong>
-                  <small>Free Over $35 • 30-Day US Returns</small>
+            <div className="pk-hero-showcase">
+              {activeHero ? (
+                <>
+                  <div className="pk-showcase-top">
+                    <span className="pk-showcase-badge">🔥 TOP PICK</span>
+                    <span className="pk-showcase-ship">🇺🇸 Fast US Delivery</span>
+                  </div>
+                  <Link href={`/product/${activeHero.handle}`} className="pk-showcase-img-wrap">
+                    <img src={activeHero.image} alt={activeHero.imageAlt || activeHero.name} />
+                  </Link>
+                  <div className="pk-showcase-info">
+                    <div>
+                      <Link href={`/product/${activeHero.handle}`} className="pk-showcase-name">
+                        {activeHero.name}
+                      </Link>
+                      <div className="pk-showcase-price">
+                        {new Intl.NumberFormat("en-US", { style: "currency", currency: activeHero.currency || "USD" }).format(activeHero.price)}
+                        <span> • Ready to Ship</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="pk-showcase-buy"
+                      onClick={() => handleQuickAdd(activeHero)}
+                    >
+                      {addedId === activeHero.id ? "✓ Added" : "+ Add"}
+                    </button>
+                  </div>
+                  {featuredProducts.length > 1 && (
+                    <div className="pk-showcase-thumbs">
+                      {featuredProducts.map((fp, i) => (
+                        <button
+                          key={fp.id}
+                          type="button"
+                          onClick={() => setHeroIdx(i)}
+                          className={`pk-thumb-btn ${i === heroIdx % featuredProducts.length ? "active" : ""}`}
+                          aria-label={`Preview ${fp.name}`}
+                        >
+                          <img src={fp.image} alt={fp.name} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="pk-showcase-loading">
+                  <span>✨</span>
+                  <strong>Loading Featured Picks...</strong>
+                  <small>Nationwide USA Tracked Shipping</small>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </section>

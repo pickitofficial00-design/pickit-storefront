@@ -55,8 +55,8 @@ async function pickGeminiModel(apiKey: string): Promise<string> {
       .map((m) => m.name!.replace(/^models\//, ""));
 
     return (
-      valid.find((n) => n === "gemini-2.5-flash") ||
-      valid.find((n) => n.includes("flash") && !n.includes("lite")) ||
+      
+      valid.filter((n)=>!/tts|image|audio|embedding|robotics|computer-use|veo|imagen|live|native/.test(n)).find((n)=>n.includes("flash")) ||
       valid.find((n) => n.includes("flash")) ||
       valid[0] ||
       "gemini-2.5-flash"

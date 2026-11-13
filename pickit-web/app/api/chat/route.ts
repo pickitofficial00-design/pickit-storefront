@@ -27,9 +27,36 @@ type ChatMessage = {
   content: string;
 };
 
+async function callGemini(
+  apiKey: string,
+  model: string,
+  systemInstruction: string,
+  contents: Array<{ role: string; parts: Array<{ text: string }> }>
+) {
+  return fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
+      apiKey
+    )}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemInstruction }],
+        },
+        contents,
+        generationConfig: {
+          temperature: 0.5,
+          maxOutputTokens: 450,
+        },
+      }),
+    }
+  );
+}
+
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
     if (!apiKey) {
       return NextResponse.json(
         {
@@ -112,27 +139,27 @@ RULES:
       parts: [{ text: m.content }],
     }));
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(
-        apiKey
-      )}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: systemInstruction }],
-          },
-          contents,
-          generationConfig: {
-            temperature: 0.5,
-            maxOutputTokens: 450,
-          },
-        }),
-      }
+    let geminiRes = await callGemini(
+      apiKey,
+      "gemini-2.5-flash",
+      systemInstruction,
+      contents
     );
 
     if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      console.error("Gemini 2.5-flash failed:", geminiRes.status, errText);
+      geminiRes = await callGemini(
+        apiKey,
+        "gemini-2.0-flash",
+        systemInstruction,
+        contents
+      );
+    }
+
+    if (!geminiRes.ok) {
+      const errText2 = await geminiRes.text();
+      console.error("Gemini 2.0-flash failed:", geminiRes.status, errText2);
       return NextResponse.json({
         reply:
           "I'm having trouble connecting right now. You can browse products on our homepage or email pickitofficial00@gmail.com for quick help!",
@@ -145,7 +172,8 @@ RULES:
       "How can I help you with PICKIT products, shipping, or returns today?";
 
     return NextResponse.json({ reply });
-  } catch {
+  } catch (err) {
+    console.error("PICKIT AI route error:", err);
     return NextResponse.json({
       reply:
         "Something went wrong. Please try again or email pickitofficial00@gmail.com.",

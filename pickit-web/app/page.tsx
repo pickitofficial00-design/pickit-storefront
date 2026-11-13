@@ -243,12 +243,12 @@ export default function Home() {
             </div>
 
             <div className="pk-hero-visual">
-              <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1000&q=80" alt="PICKIT curated lifestyle & gadgets" />
+              <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200&q=85" alt="PICKIT modern everyday tech and lifestyle essentials" />
               <div className="pk-hero-float">
                 <span className="pk-float-dot" />
                 <div>
-                  <strong>Fast US Tracked Delivery</strong>
-                  <small>6–12 Business Days • Insured</small>
+                  <strong>Nationwide USA Tracked Shipping</strong>
+                  <small>Free Over $35 • 30-Day US Returns</small>
                 </div>
               </div>
             </div>

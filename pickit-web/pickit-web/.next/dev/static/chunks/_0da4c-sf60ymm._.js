@@ -602,7 +602,6 @@ function CartProvider({ children }) {
         cart,
         isLoaded
     ]);
-    // Automatically dismiss the popup after 3.5 seconds (resets if another item is added)
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "CartProvider.useEffect": ()=>{
             if (!addedPopup) return;
@@ -672,30 +671,49 @@ function CartProvider({ children }) {
         },
         children: [
             children,
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("style", {
+                children: `
+        .pk-cart-toast {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          z-index: 99999;
+          background-color: #141414;
+          color: #ffffff;
+          padding: 12px 14px;
+          border-radius: 16px;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+          border: 1px solid #2e2e2e;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          max-width: 380px;
+          width: calc(100vw - 48px);
+        }
+        @media (max-width: 640px) {
+          .pk-cart-toast {
+            left: 12px;
+            right: 12px;
+            bottom: calc(14px + env(safe-area-inset-bottom));
+            width: auto;
+            max-width: none;
+          }
+        }
+      `
+            }, void 0, false, {
+                fileName: "[project]/app/context/CartContext.tsx",
+                lineNumber: 138,
+                columnNumber: 7
+            }, this),
             addedPopup && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                style: {
-                    position: "fixed",
-                    bottom: "24px",
-                    right: "24px",
-                    zIndex: 99999,
-                    backgroundColor: "#141414",
-                    color: "#ffffff",
-                    padding: "14px 16px",
-                    borderRadius: "16px",
-                    boxShadow: "0 12px 32px rgba(0,0,0,0.32)",
-                    border: "1px solid #2e2e2e",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    maxWidth: "380px"
-                },
+                className: "pk-cart-toast",
                 children: [
                     addedPopup.image && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
                         src: addedPopup.image,
                         alt: "",
                         style: {
-                            width: "44px",
-                            height: "44px",
+                            width: "40px",
+                            height: "40px",
                             borderRadius: "8px",
                             objectFit: "contain",
                             backgroundColor: "#ffffff",
@@ -704,7 +722,7 @@ function CartProvider({ children }) {
                         }
                     }, void 0, false, {
                         fileName: "[project]/app/context/CartContext.tsx",
-                        lineNumber: 160,
+                        lineNumber: 170,
                         columnNumber: 13
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -715,14 +733,14 @@ function CartProvider({ children }) {
                         children: [
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 style: {
-                                    fontSize: "12px",
+                                    fontSize: "11px",
                                     fontWeight: 700,
                                     color: "#f26b21"
                                 },
                                 children: "✓ Added to Cart"
                             }, void 0, false, {
                                 fileName: "[project]/app/context/CartContext.tsx",
-                                lineNumber: 175,
+                                lineNumber: 185,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -732,18 +750,18 @@ function CartProvider({ children }) {
                                     whiteSpace: "nowrap",
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
-                                    marginTop: "2px"
+                                    marginTop: "1px"
                                 },
                                 children: addedPopup.name
                             }, void 0, false, {
                                 fileName: "[project]/app/context/CartContext.tsx",
-                                lineNumber: 178,
+                                lineNumber: 188,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/context/CartContext.tsx",
-                        lineNumber: 174,
+                        lineNumber: 184,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
@@ -753,7 +771,7 @@ function CartProvider({ children }) {
                             color: "#ffffff",
                             fontSize: "12px",
                             fontWeight: 700,
-                            padding: "8px 14px",
+                            padding: "8px 12px",
                             borderRadius: "999px",
                             textDecoration: "none",
                             flexShrink: 0
@@ -765,7 +783,7 @@ function CartProvider({ children }) {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/context/CartContext.tsx",
-                        lineNumber: 191,
+                        lineNumber: 201,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -785,19 +803,19 @@ function CartProvider({ children }) {
                         children: "✕"
                     }, void 0, false, {
                         fileName: "[project]/app/context/CartContext.tsx",
-                        lineNumber: 206,
+                        lineNumber: 216,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/context/CartContext.tsx",
-                lineNumber: 141,
+                lineNumber: 168,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/context/CartContext.tsx",
-        lineNumber: 127,
+        lineNumber: 126,
         columnNumber: 5
     }, this);
 }

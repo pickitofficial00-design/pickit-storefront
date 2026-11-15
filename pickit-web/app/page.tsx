@@ -204,8 +204,24 @@ export default function Home() {
         <div className="pk-header-inner">
           <Link className="pk-logo" href="/">PICK<span>IT.</span></Link>
 
-          <div className="pk-search-wrap">
-            <svg className="pk-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+         <form
+            className="pk-search-wrap"
+            onSubmit={(e) => {
+              e.preventDefault();
+              document
+                .getElementById("products")
+                ?.scrollIntoView({ behavior: "smooth" });
+            }}
+          >
+            <svg
+              className="pk-search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+            >
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.3-4.3" />
             </svg>
@@ -214,11 +230,44 @@ export default function Home() {
               placeholder="Search gadgets, essentials, fashion..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              style={{ paddingRight: search ? "76px" : "46px" }}
             />
             {search && (
-              <button type="button" className="pk-search-clear" onClick={() => setSearch("")} aria-label="Clear search">✕</button>
+              <button
+                type="button"
+                className="pk-search-clear"
+                onClick={() => setSearch("")}
+                aria-label="Clear search"
+                style={{ right: "44px" }}
+              >
+                ✕
+              </button>
             )}
-          </div>
+            <button
+              type="submit"
+              aria-label="Search products"
+              style={{
+                position: "absolute",
+                right: "6px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: "30px",
+                height: "30px",
+                borderRadius: "999px",
+                backgroundColor: "#f26b21",
+                color: "#ffffff",
+                border: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                fontSize: "15px",
+                fontWeight: 700,
+              }}
+            >
+              →
+            </button>
+          </form>
 
           <div className="pk-actions">
             <Link className="pk-icon-btn" href="/account" aria-label="Account">

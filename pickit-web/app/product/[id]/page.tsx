@@ -12,6 +12,7 @@ const PRODUCT_QUERY = gql(`
       handle
       title
       description
+      descriptionHtml
       productType
       availableForSale
       featuredImage {
@@ -63,8 +64,8 @@ export default async function ProductPage({
       variables: { handle },
     });
 
-    if (errors) {
-      throw new Error("Shopify product query failed");
+    if (errors || !data?.product) {
+      throw new Error("Shopify product query failed or product not found");
     }
 
     product = data.product;
@@ -92,7 +93,8 @@ export default async function ProductPage({
       product={{
         id: product.id,
         title: product.title,
-        description: product.description,
+        description: product.description || "",
+        descriptionHtml: product.descriptionHtml || "",
         productType: product.productType,
         availableForSale: product.availableForSale,
         featuredImage: product.featuredImage ?? null,

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "./context/CartContext";
 import ChatWidget from "./components/ChatWidget";
+import BackButton from "./components/BackButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +32,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <CartProvider>
+          <BackButton />
           {children}
           <ChatWidget />
         </CartProvider>

@@ -186,7 +186,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
           max-width: 1200px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: 40px;
           align-items: start;
         }

@@ -35,7 +35,11 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [addedPopup, setAddedPopup] = useState<{ name: string; image: string } | null>(null);
+  const [addedPopup, setAddedPopup] = useState<{
+    name: string;
+    image: string;
+    timestamp: number;
+  } | null>(null);
 
   useEffect(() => {
     try {
@@ -45,12 +49,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (Array.isArray(parsedCart)) {
           setCart(parsedCart);
         }
-      }
-
-      // Restore persistent popup for the current browser session until closed
-      const savedPopup = sessionStorage.getItem("pickit-added-popup");
-      if (savedPopup) {
-        setAddedPopup(JSON.parse(savedPopup));
       }
     } catch {
       localStorage.removeItem("pickit-cart");
@@ -64,6 +62,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("pickit-cart", JSON.stringify(cart));
     }
   }, [cart, isLoaded]);
+
+  // Automatically dismiss the popup after 3.5 seconds (resets if another item is added)
+  useEffect(() => {
+    if (!addedPopup) return;
+    const timer = setTimeout(() => {
+      setAddedPopup(null);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [addedPopup]);
 
   function addToCart(
     item: Omit<CartItem, "quantity">,
@@ -84,19 +91,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
 
     if (options.showPopup !== false) {
-      const popupData = { name: item.name, image: item.image };
-      setAddedPopup(popupData);
-      try {
-        sessionStorage.setItem("pickit-added-popup", JSON.stringify(popupData));
-      } catch {}
+      setAddedPopup({
+        name: item.name,
+        image: item.image,
+        timestamp: Date.now(),
+      });
     }
-  }
-
-  function dismissPopup() {
-    setAddedPopup(null);
-    try {
-      sessionStorage.removeItem("pickit-added-popup");
-    } catch {}
   }
 
   function increaseQuantity(id: string) {
@@ -136,7 +136,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     >
       {children}
 
-      {/* Persistent "Added to Cart" Popup until user closes it or closes the app */}
+      {/* Auto-dismissing "Added to Cart" Toast (3.5s) */}
       {addedPopup && (
         <div
           style={{
@@ -205,7 +205,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           </a>
           <button
             type="button"
-            onClick={dismissPopup}
+            onClick={() => setAddedPopup(null)}
             aria-label="Close notification"
             style={{
               background: "transparent",

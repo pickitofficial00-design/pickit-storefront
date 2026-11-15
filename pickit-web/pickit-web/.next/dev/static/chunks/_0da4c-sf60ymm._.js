@@ -585,11 +585,6 @@ function CartProvider({ children }) {
                         setCart(parsedCart);
                     }
                 }
-                // Restore persistent popup for the current browser session until closed
-                const savedPopup = sessionStorage.getItem("pickit-added-popup");
-                if (savedPopup) {
-                    setAddedPopup(JSON.parse(savedPopup));
-                }
             } catch  {
                 localStorage.removeItem("pickit-cart");
             } finally{
@@ -606,6 +601,22 @@ function CartProvider({ children }) {
     }["CartProvider.useEffect"], [
         cart,
         isLoaded
+    ]);
+    // Automatically dismiss the popup after 3.5 seconds (resets if another item is added)
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "CartProvider.useEffect": ()=>{
+            if (!addedPopup) return;
+            const timer = setTimeout({
+                "CartProvider.useEffect.timer": ()=>{
+                    setAddedPopup(null);
+                }
+            }["CartProvider.useEffect.timer"], 3500);
+            return ({
+                "CartProvider.useEffect": ()=>clearTimeout(timer)
+            })["CartProvider.useEffect"];
+        }
+    }["CartProvider.useEffect"], [
+        addedPopup
     ]);
     function addToCart(item, options = {
         showPopup: true
@@ -627,21 +638,12 @@ function CartProvider({ children }) {
             ];
         });
         if (options.showPopup !== false) {
-            const popupData = {
+            setAddedPopup({
                 name: item.name,
-                image: item.image
-            };
-            setAddedPopup(popupData);
-            try {
-                sessionStorage.setItem("pickit-added-popup", JSON.stringify(popupData));
-            } catch  {}
+                image: item.image,
+                timestamp: Date.now()
+            });
         }
-    }
-    function dismissPopup() {
-        setAddedPopup(null);
-        try {
-            sessionStorage.removeItem("pickit-added-popup");
-        } catch  {}
     }
     function increaseQuantity(id) {
         setCart((currentCart)=>currentCart.map((item)=>item.id === id ? {
@@ -768,7 +770,7 @@ function CartProvider({ children }) {
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                         type: "button",
-                        onClick: dismissPopup,
+                        onClick: ()=>setAddedPopup(null),
                         "aria-label": "Close notification",
                         style: {
                             background: "transparent",
@@ -799,7 +801,7 @@ function CartProvider({ children }) {
         columnNumber: 5
     }, this);
 }
-_s(CartProvider, "2LF+zKUh90eb4Dys57vQON6pZjM=");
+_s(CartProvider, "dr4IZ5u3crF3paCI50+R/R5Phfs=");
 _c = CartProvider;
 function useCart() {
     _s1();

@@ -47,7 +47,6 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
     variants[0] || ({} as ProductVariant)
   );
 
-  // Include featuredImage, gallery images, AND all variant images
   const rawImages: (ProductImage | null | undefined)[] = [
     product?.featuredImage,
     ...(product?.images || []),
@@ -111,7 +110,6 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
   const currencyCode = selectedVariant?.price?.currencyCode || variants[0]?.price?.currencyCode || 'USD';
   const currentImage = allImages[activeImageIndex]?.url || product?.featuredImage?.url || '';
 
-  // Persistent cart check: keeps button green while item is in cart, toggles back on second click
   const activeVariant = selectedVariant?.id ? selectedVariant : variants[0];
   const activeVariantId = activeVariant?.id || product.id;
   const isInCart = cart.some((item) => item.id === activeVariantId);
@@ -175,38 +173,87 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
   };
 
   return (
-    <div style={{ backgroundColor: '#faf9f7', minHeight: '100vh', padding: '32px 16px', color: '#171717' }}>
-      <div
-        style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '40px',
-          alignItems: 'start',
-        }}
-      >
+    <div
+      style={{
+        backgroundColor: '#faf9f7',
+        minHeight: '100vh',
+        padding: '16px 16px 96px',
+        color: '#171717',
+      }}
+    >
+      <style>{`
+        .pk-pd-grid {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 40px;
+          align-items: start;
+        }
+        .pk-pd-stage {
+          position: relative;
+          width: 100%;
+          height: 440px;
+          background-color: #ffffff;
+          border-radius: 18px;
+          border: 1px solid #eceae6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          cursor: zoom-in;
+          user-select: none;
+          touch-action: pan-y;
+        }
+        .pk-pd-title {
+          font-size: 28px;
+          font-weight: 800;
+          color: #141414;
+          margin: 0;
+          line-height: 1.25;
+        }
+        .pk-mobile-sticky-bar {
+          display: none;
+        }
+        @media (max-width: 768px) {
+          .pk-pd-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+          }
+          .pk-pd-stage {
+            height: 300px;
+            border-radius: 14px;
+          }
+          .pk-pd-title {
+            font-size: 22px;
+          }
+          .pk-mobile-sticky-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 90;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid #e5e3de;
+            padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+          }
+        }
+      `}</style>
+
+      <div className="pk-pd-grid">
         {/* LEFT: Image Gallery */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div
+            className="pk-pd-stage"
             onClick={() => setIsModalOpen(true)}
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
-            style={{
-              position: 'relative',
-              width: '100%',
-              height: '440px',
-              backgroundColor: '#ffffff',
-              borderRadius: '18px',
-              border: '1px solid #eceae6',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-              cursor: 'zoom-in',
-              userSelect: 'none',
-              touchAction: 'pan-y',
-            }}
           >
             {currentImage && (
               <img
@@ -217,7 +264,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                   maxWidth: '100%',
                   maxHeight: '100%',
                   objectFit: 'contain',
-                  padding: '16px',
+                  padding: '14px',
                   pointerEvents: 'none',
                 }}
               />
@@ -226,17 +273,17 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
             <span
               style={{
                 position: 'absolute',
-                bottom: '12px',
-                right: '12px',
+                bottom: '10px',
+                right: '10px',
                 backgroundColor: 'rgba(20, 20, 20, 0.75)',
                 color: '#ffffff',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 500,
-                padding: '5px 11px',
+                padding: '4px 10px',
                 borderRadius: '999px',
               }}
             >
-              Swipe or Click to Zoom 🔍
+              Swipe or Tap to Zoom 🔍
             </span>
 
             {allImages.length > 1 && (
@@ -250,11 +297,11 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                   }}
                   style={{
                     position: 'absolute',
-                    left: '12px',
+                    left: '10px',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    width: '38px',
-                    height: '38px',
+                    width: '36px',
+                    height: '36px',
                     borderRadius: '50%',
                     backgroundColor: '#ffffff',
                     border: '1px solid #e5e3de',
@@ -276,11 +323,11 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                   }}
                   style={{
                     position: 'absolute',
-                    right: '12px',
+                    right: '10px',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    width: '38px',
-                    height: '38px',
+                    width: '36px',
+                    height: '36px',
                     borderRadius: '50%',
                     backgroundColor: '#ffffff',
                     border: '1px solid #e5e3de',
@@ -299,7 +346,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
 
           {/* Thumbnails */}
           {allImages.length > 1 && (
-            <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
               {allImages.map((img, idx) => (
                 <button
                   key={idx}
@@ -309,9 +356,9 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                     setActiveImageIndex(idx);
                   }}
                   style={{
-                    width: '74px',
-                    height: '74px',
-                    borderRadius: '12px',
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '10px',
                     border: activeImageIndex === idx ? '2px solid #f26b21' : '1px solid #e5e3de',
                     backgroundColor: '#ffffff',
                     padding: '4px',
@@ -333,25 +380,37 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
 
         {/* RIGHT: Buy Box */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#141414', margin: 0, lineHeight: 1.25 }}>
-            {product?.title}
-          </h1>
+          <h1 className="pk-pd-title">{product?.title}</h1>
 
-          <div style={{ fontSize: '26px', fontWeight: 800, color: '#141414', marginTop: '12px' }}>
-            {currencyCode === 'USD' ? '$' : `${currencyCode} `}
-            {currentPrice}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#141414' }}>
+              {currencyCode === 'USD' ? '$' : `${currencyCode} `}
+              {currentPrice}
+            </span>
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#16a34a',
+                backgroundColor: '#dcfce7',
+                padding: '3px 10px',
+                borderRadius: '999px',
+              }}
+            >
+              In Stock • Fast US Shipping
+            </span>
           </div>
 
           <div
             style={{
-              margin: '16px 0',
-              padding: '14px 16px',
+              margin: '14px 0',
+              padding: '12px 14px',
               backgroundColor: '#f5f3ef',
               borderRadius: '12px',
               border: '1px solid #eceae6',
               color: '#444444',
               fontSize: '14px',
-              lineHeight: 1.55,
+              lineHeight: 1.5,
             }}
           >
             <strong style={{ color: '#141414' }}>Overview:</strong> {shortSummary}
@@ -359,8 +418,8 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
 
           {/* Variant Selector */}
           {variants.length > 1 && (
-            <div style={{ marginBottom: '22px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#444444', marginBottom: '10px' }}>
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#444444', marginBottom: '8px' }}>
                 Select Option: <span style={{ color: '#f26b21' }}>{selectedVariant.title}</span>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -372,7 +431,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                       type="button"
                       onClick={() => handleVariantSelect(variant)}
                       style={{
-                        padding: '9px 16px',
+                        padding: '9px 15px',
                         fontSize: '13px',
                         fontWeight: 600,
                         borderRadius: '999px',
@@ -391,7 +450,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
           )}
 
           {/* Purchase Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
             <button
               type="button"
               onClick={handleAddToCart}
@@ -450,7 +509,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
           <a
             href="#full-details"
             style={{
-              marginTop: '20px',
+              marginTop: '18px',
               fontSize: '14px',
               fontWeight: 600,
               color: '#f26b21',
@@ -467,12 +526,12 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
         id="full-details"
         style={{
           maxWidth: '1200px',
-          margin: '48px auto 0',
-          paddingTop: '32px',
+          margin: '36px auto 0',
+          paddingTop: '28px',
           borderTop: '1px solid #eceae6',
         }}
       >
-        <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#141414', marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '19px', fontWeight: 800, color: '#141414', marginBottom: '14px' }}>
           Product Specifications & Details
         </h2>
 
@@ -505,7 +564,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
           style={{
-            marginTop: '16px',
+            marginTop: '14px',
             padding: '9px 20px',
             borderRadius: '999px',
             border: '1px solid #e5e3de',
@@ -518,6 +577,54 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
         >
           {isExpanded ? 'Show Less ▴' : 'See More Details ▾'}
         </button>
+      </div>
+
+      {/* STICKY MOBILE THUMB BAR (Visible only on phones) */}
+      <div className="pk-mobile-sticky-bar">
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: 600 }}>Price</div>
+          <div style={{ fontSize: '17px', fontWeight: 800, color: '#141414' }}>
+            {currencyCode === 'USD' ? '$' : `${currencyCode} `}
+            {currentPrice}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            style={{
+              padding: '11px 14px',
+              borderRadius: '999px',
+              fontSize: '13px',
+              fontWeight: 700,
+              backgroundColor: isInCart ? '#16a34a' : '#141414',
+              color: '#ffffff',
+              border: 'none',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {isInCart ? '✓ Added' : '+ Cart'}
+          </button>
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            disabled={isBuying}
+            style={{
+              padding: '11px 18px',
+              borderRadius: '999px',
+              fontSize: '13px',
+              fontWeight: 700,
+              backgroundColor: '#f26b21',
+              color: '#ffffff',
+              border: 'none',
+              cursor: isBuying ? 'wait' : 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {isBuying ? 'Loading...' : 'Buy Now'}
+          </button>
+        </div>
       </div>
 
       {/* FULLSCREEN LIGHTBOX MODAL */}
@@ -569,9 +676,9 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                 }}
                 style={{
                   position: 'absolute',
-                  left: '20px',
-                  width: '44px',
-                  height: '44px',
+                  left: '16px',
+                  width: '42px',
+                  height: '42px',
                   borderRadius: '50%',
                   backgroundColor: 'rgba(255,255,255,0.2)',
                   color: '#ffffff',
@@ -590,9 +697,9 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                 }}
                 style={{
                   position: 'absolute',
-                  right: '20px',
-                  width: '44px',
-                  height: '44px',
+                  right: '16px',
+                  width: '42px',
+                  height: '42px',
                   borderRadius: '50%',
                   backgroundColor: 'rgba(255,255,255,0.2)',
                   color: '#ffffff',
@@ -612,8 +719,8 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
             draggable={false}
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: '90vw',
-              maxHeight: '84vh',
+              maxWidth: '92vw',
+              maxHeight: '82vh',
               objectFit: 'contain',
               borderRadius: '12px',
               pointerEvents: 'none',
@@ -623,7 +730,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
           <div
             style={{
               position: 'absolute',
-              bottom: '20px',
+              bottom: '24px',
               color: '#ffffff',
               fontSize: '13px',
               fontWeight: 600,

@@ -63,7 +63,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [cart, isLoaded]);
 
-  // Automatically dismiss the popup after 3.5 seconds (resets if another item is added)
   useEffect(() => {
     if (!addedPopup) return;
     const timer = setTimeout(() => {
@@ -136,33 +135,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
     >
       {children}
 
-      {/* Auto-dismissing "Added to Cart" Toast (3.5s) */}
+      <style>{`
+        .pk-cart-toast {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          z-index: 99999;
+          background-color: #141414;
+          color: #ffffff;
+          padding: 12px 14px;
+          border-radius: 16px;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+          border: 1px solid #2e2e2e;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          max-width: 380px;
+          width: calc(100vw - 48px);
+        }
+        @media (max-width: 640px) {
+          .pk-cart-toast {
+            left: 12px;
+            right: 12px;
+            bottom: calc(14px + env(safe-area-inset-bottom));
+            width: auto;
+            max-width: none;
+          }
+        }
+      `}</style>
+
       {addedPopup && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            zIndex: 99999,
-            backgroundColor: "#141414",
-            color: "#ffffff",
-            padding: "14px 16px",
-            borderRadius: "16px",
-            boxShadow: "0 12px 32px rgba(0,0,0,0.32)",
-            border: "1px solid #2e2e2e",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            maxWidth: "380px",
-          }}
-        >
+        <div className="pk-cart-toast">
           {addedPopup.image && (
             <img
               src={addedPopup.image}
               alt=""
               style={{
-                width: "44px",
-                height: "44px",
+                width: "40px",
+                height: "40px",
                 borderRadius: "8px",
                 objectFit: "contain",
                 backgroundColor: "#ffffff",
@@ -172,7 +182,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             />
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: "12px", fontWeight: 700, color: "#f26b21" }}>
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "#f26b21" }}>
               ✓ Added to Cart
             </div>
             <div
@@ -182,7 +192,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                marginTop: "2px",
+                marginTop: "1px",
               }}
             >
               {addedPopup.name}
@@ -195,7 +205,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
               color: "#ffffff",
               fontSize: "12px",
               fontWeight: 700,
-              padding: "8px 14px",
+              padding: "8px 12px",
               borderRadius: "999px",
               textDecoration: "none",
               flexShrink: 0,

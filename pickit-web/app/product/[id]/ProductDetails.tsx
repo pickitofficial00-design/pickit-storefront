@@ -177,18 +177,27 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
       style={{
         backgroundColor: '#faf9f7',
         minHeight: '100vh',
-        padding: '16px 16px 96px',
+        padding: '16px 16px 110px',
         color: '#171717',
+        width: '100%',
+        overflowX: 'clip',
       }}
     >
       <style>{`
         .pk-pd-grid {
           max-width: 1200px;
+          width: 100%;
           margin: 0 auto;
           display: grid;
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: 40px;
           align-items: start;
+        }
+        .pk-pd-col {
+          min-width: 0;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
         }
         .pk-pd-stage {
           position: relative;
@@ -197,13 +206,18 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
           background-color: #ffffff;
           border-radius: 18px;
           border: 1px solid #eceae6;
-          display: flex;
-          align-items: center;
-          justify-content: center;
           overflow: hidden;
           cursor: zoom-in;
           user-select: none;
           touch-action: pan-y;
+        }
+        .pk-pd-main-img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          display: block;
+          padding: 16px;
+          pointer-events: none;
         }
         .pk-pd-title {
           font-size: 28px;
@@ -211,21 +225,22 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
           color: #141414;
           margin: 0;
           line-height: 1.25;
+          word-break: break-word;
         }
         .pk-mobile-sticky-bar {
           display: none;
         }
         @media (max-width: 768px) {
           .pk-pd-grid {
-            grid-template-columns: 1fr;
-            gap: 20px;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 18px;
           }
           .pk-pd-stage {
-            height: 300px;
+            height: 290px;
             border-radius: 14px;
           }
           .pk-pd-title {
-            font-size: 22px;
+            font-size: 21px;
           }
           .pk-mobile-sticky-bar {
             display: flex;
@@ -237,18 +252,24 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
             left: 0;
             right: 0;
             z-index: 90;
-            background: rgba(255, 255, 255, 0.96);
+            background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(10px);
             border-top: 1px solid #e5e3de;
-            padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+            padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+          }
+          /* Lift floating AI chat button above sticky bottom bar on phones */
+          button[aria-label*="chat" i],
+          button[aria-label*="AI" i],
+          .pk-chat-trigger {
+            bottom: 82px !important;
           }
         }
       `}</style>
 
       <div className="pk-pd-grid">
         {/* LEFT: Image Gallery */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="pk-pd-col" style={{ gap: '12px' }}>
           <div
             className="pk-pd-stage"
             onClick={() => setIsModalOpen(true)}
@@ -257,16 +278,10 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
           >
             {currentImage && (
               <img
+                className="pk-pd-main-img"
                 src={currentImage}
                 alt={allImages[activeImageIndex]?.altText || product?.title || ''}
                 draggable={false}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  objectFit: 'contain',
-                  padding: '14px',
-                  pointerEvents: 'none',
-                }}
               />
             )}
 
@@ -310,6 +325,9 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                     cursor: 'pointer',
                     fontSize: '20px',
                     fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
                   ‹
@@ -336,6 +354,9 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                     cursor: 'pointer',
                     fontSize: '20px',
                     fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
                   ›
@@ -346,7 +367,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
 
           {/* Thumbnails */}
           {allImages.length > 1 && (
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', width: '100%' }}>
               {allImages.map((img, idx) => (
                 <button
                   key={idx}
@@ -356,8 +377,8 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                     setActiveImageIndex(idx);
                   }}
                   style={{
-                    width: '64px',
-                    height: '64px',
+                    width: '62px',
+                    height: '62px',
                     borderRadius: '10px',
                     border: activeImageIndex === idx ? '2px solid #f26b21' : '1px solid #e5e3de',
                     backgroundColor: '#ffffff',
@@ -379,10 +400,10 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
         </div>
 
         {/* RIGHT: Buy Box */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="pk-pd-col">
           <h1 className="pk-pd-title">{product?.title}</h1>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
             <span style={{ fontSize: '24px', fontWeight: 800, color: '#141414' }}>
               {currencyCode === 'USD' ? '$' : `${currencyCode} `}
               {currentPrice}
@@ -411,6 +432,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
               color: '#444444',
               fontSize: '14px',
               lineHeight: 1.5,
+              wordBreak: 'break-word',
             }}
           >
             <strong style={{ color: '#141414' }}>Overview:</strong> {shortSummary}
@@ -450,13 +472,14 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
           )}
 
           {/* Purchase Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px', width: '100%' }}>
             <button
               type="button"
               onClick={handleAddToCart}
               style={{
                 width: '100%',
-                padding: '15px 24px',
+                minHeight: '50px',
+                padding: '14px 24px',
                 borderRadius: '999px',
                 fontSize: '15px',
                 fontWeight: 700,
@@ -464,7 +487,9 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                 color: '#ffffff',
                 border: isInCart ? '1.5px solid #16a34a' : '1.5px solid #141414',
                 cursor: 'pointer',
-                transition: 'background-color 0.2s ease, border-color 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               {isInCart ? '✓ Added to Cart' : 'Add to Cart'}
@@ -475,7 +500,8 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
               disabled={isBuying}
               style={{
                 width: '100%',
-                padding: '15px 24px',
+                minHeight: '50px',
+                padding: '14px 24px',
                 borderRadius: '999px',
                 fontSize: '15px',
                 fontWeight: 700,
@@ -484,6 +510,9 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                 border: '1.5px solid #f26b21',
                 cursor: isBuying ? 'wait' : 'pointer',
                 boxShadow: '0 4px 14px rgba(242, 107, 33, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               {isBuying ? 'Starting Checkout...' : 'Buy Now'}
@@ -579,7 +608,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
         </button>
       </div>
 
-      {/* STICKY MOBILE THUMB BAR (Visible only on phones) */}
+      {/* STICKY MOBILE THUMB BAR */}
       <div className="pk-mobile-sticky-bar">
         <div style={{ flexShrink: 0 }}>
           <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: 600 }}>Price</div>

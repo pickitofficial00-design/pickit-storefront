@@ -38,6 +38,12 @@
         "projectId": "f1bbdd99-b3ec-45bc-ba2f-bb19a0e7cb03"
       }
     },
-    "backgroundColor": "#111111"
+    "backgroundColor": "#111111",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f1bbdd99-b3ec-45bc-ba2f-bb19a0e7cb03"
+    }
   }
 }

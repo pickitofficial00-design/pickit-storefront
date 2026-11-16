@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "PICKIT",
+    "slug": "pickit-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pickit.storefront"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#111111"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.pickit.storefront",
+      "versionCode": 1
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#111111"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f1bbdd99-b3ec-45bc-ba2f-bb19a0e7cb03"
+      }
+    },
+    "backgroundColor": "#111111"
+  }
+}

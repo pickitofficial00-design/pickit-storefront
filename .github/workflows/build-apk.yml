@@ -1,0 +1,29 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install & Prebuild
+        working-directory: pickit-app
+        run: |
+          npm install
+          npx expo prebuild --platform android --clean
+      - name: Build Release APK
+        working-directory: pickit-app/android
+        run: ./gradlew assembleRelease
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pickit-app-apk
+          path: pickit-app/android/app/build/outputs/apk/release/app-release.apk

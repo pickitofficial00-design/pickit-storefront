@@ -1,6 +1,6 @@
 // Single API adapter for PICKIT.
 // Currently talks to your pickit-web API (which connects to Shopify).
-// Later, when you replace Shopify with your own backend, you ONLY edit this file!
+// Automatically paginates through all pages so 100+ products load seamlessly.
 
 const API_BASE_URL = "https://pickit-storefront.vercel.app";
 
@@ -27,7 +27,7 @@ export interface ProductsResponse {
   nextCursor: string | null;
 }
 
-export async function fetchProducts(cursor?: string | null): Promise<ProductsResponse> {
+async function fetchProductPage(cursor?: string | null): Promise<ProductsResponse> {
   const url = new URL(`${API_BASE_URL}/api/shopify-test`);
   if (cursor) {
     url.searchParams.set("cursor", cursor);
@@ -40,10 +40,42 @@ export async function fetchProducts(cursor?: string | null): Promise<ProductsRes
   return res.json();
 }
 
+export async function fetchProducts(cursor?: string | null): Promise<ProductsResponse> {
+  // If a specific cursor is passed, fetch just that page
+  if (cursor) {
+    return fetchProductPage(cursor);
+  }
+
+  // Otherwise, fetch all pages so all 100+ Shopify products appear across Home, Categories & Search
+  const allProducts: Product[] = [];
+  const seenIds = new Set<string>();
+  let nextCursor: string | null = null;
+  let hasNextPage = true;
+  let pageCount = 0;
+
+  while (hasNextPage && pageCount < 15) {
+    const page = await fetchProductPage(nextCursor);
+    for (const item of page.products || []) {
+      if (!seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        allProducts.push(item);
+      }
+    }
+    hasNextPage = Boolean(page.hasNextPage && page.nextCursor);
+    nextCursor = page.nextCursor || null;
+    pageCount++;
+  }
+
+  return {
+    products: allProducts,
+    hasNextPage: false,
+    nextCursor: null,
+  };
+}
+
 export async function createCheckoutUrl(
   items: { variantId: string; quantity: number }[]
 ): Promise<string> {
-  // Calls your web checkout endpoint (we will add /api/checkout to pickit-web next)
   const res = await fetch(`${API_BASE_URL}/api/checkout`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

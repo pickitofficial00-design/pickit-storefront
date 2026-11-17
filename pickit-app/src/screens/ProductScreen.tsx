@@ -173,7 +173,7 @@ export default function ProductScreen() {
   const displayTitle = cleanStandardUsTitle(product.name);
   const saved = isWishlisted(product.id);
   const rating = product.rating && product.rating > 0 ? product.rating.toFixed(1) : "4.8";
-  const displayPrice = selectedVariant ? selectedVariant.price : product.price;
+  const displayPrice = Number(selectedVariant?.price ?? product.price ?? 0);
   const originalPrice =
     selectedVariant?.compareAtPrice && selectedVariant.compareAtPrice > displayPrice
       ? selectedVariant.compareAtPrice
@@ -186,8 +186,11 @@ export default function ProductScreen() {
     (variants.length === 1 && variants[0].title !== "Default Title");
 
   const selectPhotoIndex = (idx: number) => {
+    if (idx < 0 || idx >= galleryImages.length) return;
     setActivePhotoIndex(idx);
-    galleryRef.current?.scrollToIndex({ index: idx, animated: true });
+    try {
+      galleryRef.current?.scrollToOffset({ offset: idx * SCREEN_WIDTH, animated: true });
+    } catch {}
   };
 
   const handleSelectVariant = (variant: ProductVariant) => {
@@ -267,6 +270,19 @@ export default function ProductScreen() {
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
+            getItemLayout={(_, index) => ({
+              length: SCREEN_WIDTH,
+              offset: SCREEN_WIDTH * index,
+              index,
+            })}
+            onScrollToIndexFailed={(info) => {
+              setTimeout(() => {
+                galleryRef.current?.scrollToOffset({
+                  offset: info.index * SCREEN_WIDTH,
+                  animated: true,
+                });
+              }, 50);
+            }}
             onMomentumScrollEnd={(e) => {
               const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
               if (idx >= 0 && idx < galleryImages.length) {

@@ -14,6 +14,7 @@ const PRODUCT_QUERY = gql(`
       description
       descriptionHtml
       productType
+      vendor
       availableForSale
       featuredImage {
         url
@@ -96,6 +97,7 @@ export default async function ProductPage({
         description: product.description || "",
         descriptionHtml: product.descriptionHtml || "",
         productType: product.productType,
+        vendor: product.vendor,
         availableForSale: product.availableForSale,
         featuredImage: product.featuredImage ?? null,
         images: product.images?.nodes ?? [],

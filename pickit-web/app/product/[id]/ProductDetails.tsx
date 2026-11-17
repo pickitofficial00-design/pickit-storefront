@@ -24,6 +24,7 @@ interface Product {
   description?: string;
   descriptionHtml?: string;
   productType?: string;
+  vendor?: string;
   availableForSale: boolean;
   featuredImage?: ProductImage | null;
   images?: ProductImage[];
@@ -32,6 +33,71 @@ interface Product {
 
 interface ProductDetailsProps {
   product: Product;
+}
+
+function formatUsStandardTitle(raw?: string): string {
+  if (!raw) return "PICKIT Verified Essential";
+  let clean = raw
+    .replace(/\b(202[0-9]\s*)+/g, "")
+    .replace(/\s*\/\s*/g, " / ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (clean.length > 82) {
+    const cut = clean.slice(0, 82);
+    const lastSpace = cut.lastIndexOf(" ");
+    clean = (lastSpace > 48 ? cut.slice(0, lastSpace) : cut).replace(/[,\-\/|]+$/, "").trim();
+  }
+  return clean;
+}
+
+function parseWebSpecifications(html?: string, plain?: string) {
+  const sourceHtml = html || "";
+  const listMatches = [...sourceHtml.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)]
+    .map((m) =>
+      m[1]
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/\s+/g, " ")
+        .trim()
+    )
+    .filter(Boolean);
+
+  const stripped = (sourceHtml || plain || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  const lines = stripped
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 2);
+
+  const specPairs: { label: string; value: string }[] = [];
+  for (const line of lines) {
+    const colonIdx = line.indexOf(":");
+    if (colonIdx > 1 && colonIdx < 36 && line.length < 160) {
+      const label = line.slice(0, colonIdx).replace(/^[•\-*\s]+/, "").trim();
+      const value = line.slice(colonIdx + 1).trim();
+      if (label && value) {
+        specPairs.push({ label, value });
+      }
+    }
+  }
+
+  const highlights =
+    listMatches.length > 0
+      ? listMatches.slice(0, 8)
+      : specPairs.slice(0, 5).map((s) => `${s.label}: ${s.value}`);
+
+  return { highlights, specPairs };
 }
 
 export default function ProductDetails({ product }: ProductDetailsProps) {
@@ -129,7 +195,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
       {
         id: activeVariantId,
         variantId: activeVariant?.id,
-        name: variantLabel,
+        name: formatUsStandardTitle(variantLabel),
         price: parseFloat(currentPrice) || 0,
         image: activeVariant?.image?.url || currentImage,
       },
@@ -401,7 +467,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
 
         {/* RIGHT: Buy Box */}
         <div className="pk-pd-col">
-          <h1 className="pk-pd-title">{product?.title}</h1>
+          <h1 className="pk-pd-title">{formatUsStandardTitle(product?.title)}</h1>
 
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
             <span style={{ fontSize: '24px', fontWeight: 800, color: '#141414' }}>
@@ -560,8 +626,86 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
           borderTop: '1px solid #eceae6',
         }}
       >
+        {(() => {
+          const parsed = parseWebSpecifications(product?.descriptionHtml, product?.description);
+          const brandName = product?.vendor && product.vendor !== "Unbranded" ? product.vendor : "PICKIT";
+          const specRows = [
+            { label: "Brand", value: brandName },
+            { label: "Department", value: product?.productType || "Essentials" },
+            ...(activeVariant?.title && activeVariant.title !== "Default Title"
+              ? [{ label: "Selected Option", value: activeVariant.title }]
+              : []),
+            {
+              label: "Availability",
+              value: activeVariant?.availableForSale === false ? "Out of Stock" : "In Stock — Fast US Shipping",
+            },
+            { label: "Buyer Protection", value: "30-Day Hassle-Free Returns" },
+            ...parsed.specPairs,
+          ];
+
+          return (
+            <>
+              {parsed.highlights.length > 0 && (
+                <div
+                  style={{
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #eceae6",
+                    borderRadius: "16px",
+                    padding: "20px",
+                    marginBottom: "20px",
+                  }}
+                >
+                  <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#141414", margin: "0 0 12px" }}>
+                    Key Highlights
+                  </h2>
+                  <ul style={{ margin: 0, paddingLeft: "20px", color: "#374151", lineHeight: 1.7, fontSize: "14.5px" }}>
+                    {parsed.highlights.map((item, idx) => (
+                      <li key={idx} style={{ marginBottom: "6px" }}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div
+                style={{
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #eceae6",
+                  borderRadius: "16px",
+                  padding: "20px",
+                  marginBottom: "24px",
+                }}
+              >
+                <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#141414", margin: "0 0 14px" }}>
+                  Product Specifications
+                </h2>
+                <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", overflow: "hidden" }}>
+                  {specRows.map((row, idx) => (
+                    <div
+                      key={`${row.label}_${idx}`}
+                      style={{
+                        display: "flex",
+                        padding: "11px 14px",
+                        backgroundColor: idx % 2 === 0 ? "#faf9f7" : "#ffffff",
+                        borderBottom: idx === specRows.length - 1 ? "none" : "1px solid #e5e7eb",
+                        fontSize: "14px",
+                      }}
+                    >
+                      <span style={{ width: "36%", fontWeight: 700, color: "#4b5563", paddingRight: "12px" }}>
+                        {row.label}
+                      </span>
+                      <span style={{ flex: 1, fontWeight: 600, color: "#111827" }}>
+                        {row.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          );
+        })()}
+
         <h2 style={{ fontSize: '19px', fontWeight: 800, color: '#141414', marginBottom: '14px' }}>
-          Product Specifications & Details
+          Full Product Details
         </h2>
 
         <div

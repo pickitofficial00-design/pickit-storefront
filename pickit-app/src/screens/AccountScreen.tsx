@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import * as WebBrowser from "expo-web-browser";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   FlatList,
   Image,
@@ -19,6 +21,33 @@ export default function AccountScreen() {
   const navigation = useNavigation<any>();
   const { wishlist, toggleWishlist, addToCart } = useCart();
   const [policyModal, setPolicyModal] = useState<{ title: string; body: string } | null>(null);
+  const [memberEmail, setMemberEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem("pickit_member_email").then((val) => {
+      if (val) setMemberEmail(val);
+    });
+  }, []);
+
+  const handleOpenAccountAuth = async (path: string) => {
+    try {
+      await WebBrowser.openBrowserAsync(`https://pickit-storefront.vercel.app${path}`, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+        toolbarColor: "#FFFFFF",
+        controlsColor: "#FF6B00",
+      });
+      await AsyncStorage.setItem("pickit_member_email", "Signed in via PICKIT Account");
+      setMemberEmail("Signed in via PICKIT Account");
+    } catch {}
+  };
+
+  const handleSignOutMobile = async () => {
+    await AsyncStorage.removeItem("pickit_member_email");
+    setMemberEmail(null);
+    try {
+      await WebBrowser.openBrowserAsync("https://pickit-storefront.vercel.app/account/logout");
+    } catch {}
+  };
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
 
@@ -153,9 +182,49 @@ export default function AccountScreen() {
             <Text style={styles.wordmarkIt}>IT.</Text>
           </Text>
           <Text style={styles.tagline}>
-            Your Trusted US Destination for Everyday Quality & Fast Delivery
+            {memberEmail
+              ? "Welcome back! Manage your orders, tracking, and saved account details."
+              : "Sign in to track your orders, manage returns, and speed through checkout."}
           </Text>
-          <View style={styles.badgeRow}>
+
+          {memberEmail ? (
+            <View style={{ width: "100%", gap: 10, marginTop: 4 }}>
+              <View style={styles.signedInBanner}>
+                <Ionicons name="person-circle" size={22} color="#059669" />
+                <Text style={styles.signedInText}>PICKIT Member Active</Text>
+              </View>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <TouchableOpacity
+                  style={styles.accountPrimaryBtn}
+                  onPress={() => handleOpenAccountAuth("/account")}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="person-outline" size={16} color="#FFFFFF" />
+                  <Text style={styles.accountPrimaryBtnText}>Manage Account</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.accountSecondaryBtn}
+                  onPress={handleSignOutMobile}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.accountSecondaryBtnText}>Sign Out</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View style={{ flexDirection: "row", gap: 10, width: "100%", marginTop: 4 }}>
+              <TouchableOpacity
+                style={styles.accountPrimaryBtn}
+                onPress={() => handleOpenAccountAuth("/account/login")}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="log-in-outline" size={17} color="#FFFFFF" />
+                <Text style={styles.accountPrimaryBtnText}>Sign In / Create Account</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={[styles.badgeRow, { marginTop: 12 }]}>
             <View style={styles.trustChip}>
               <Ionicons name="checkmark-circle" size={14} color="#FF6B00" />
               <Text style={styles.trustChipText}>US Storefront</Text>
@@ -308,6 +377,40 @@ const styles = StyleSheet.create({
   wordmarkIt: { color: "#FF6B00" },
   tagline: { fontSize: 13, color: "#4B5563", textAlign: "center", lineHeight: 19, marginBottom: 12 },
   badgeRow: { flexDirection: "row", gap: 8 },
+  signedInBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#ECFDF5",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  signedInText: { fontSize: 13, fontWeight: "800", color: "#059669" },
+  accountPrimaryBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#111827",
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+  },
+  accountPrimaryBtnText: { color: "#FFFFFF", fontSize: 13.5, fontWeight: "800" },
+  accountSecondaryBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F3F4F6",
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  accountSecondaryBtnText: { color: "#111827", fontSize: 13.5, fontWeight: "800" },
   trustChip: {
     flexDirection: "row",
     alignItems: "center",

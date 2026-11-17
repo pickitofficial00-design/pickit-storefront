@@ -32,7 +32,7 @@ interface CollectionItem {
 const US_COLLECTIONS: CollectionItem[] = [
   { id: "All", label: "For you", icon: "sparkles", keywords: [] },
   { id: "Mobiles & Accessories", label: "Mobiles & Accessories", icon: "phone-portrait", keywords: ["phone accessories", "mobile", "phone", "charg", "magsafe"] },
-  { id: "Electronics", label: "Electronics", icon: "hardware-chip", keywords: ["trending tech products", "tech", "electronic", "audio", "smart"] },
+  { id: "Electronics", label: "Electronics", icon: "laptop", keywords: ["trending tech products", "tech", "electronic", "audio", "smart"] },
   { id: "Home & Kitchen", label: "Home & Kitchen", icon: "home", keywords: ["home & kitchen gadgets", "home", "kitchen", "living"] },
   { id: "Fashion", label: "Fashion", icon: "shirt", keywords: ["fashion", "wear", "watch", "apparel", "bag"] },
   { id: "Appliances", label: "Appliances", icon: "desktop", keywords: ["desk setup products", "appliance", "desk", "office", "setup"] },

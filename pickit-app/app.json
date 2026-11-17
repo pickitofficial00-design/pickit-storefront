@@ -13,7 +13,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#111111"
+        "backgroundColor": "#FFFFFF"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.pickit.storefront",
@@ -29,7 +29,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#111111"
+          "backgroundColor": "#FFFFFF"
         }
       ]
     ],
@@ -38,7 +38,7 @@
         "projectId": "f1bbdd99-b3ec-45bc-ba2f-bb19a0e7cb03"
       }
     },
-    "backgroundColor": "#111111",
+    "backgroundColor": "#FFFFFF",
     "runtimeVersion": {
       "policy": "appVersion"
     },

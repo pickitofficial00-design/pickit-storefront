@@ -32,7 +32,7 @@ interface CollectionItem {
 const US_COLLECTIONS: CollectionItem[] = [
   { id: "All", label: "For you", icon: "sparkles", keywords: [] },
   { id: "Mobiles & Accessories", label: "Mobiles & Accessories", icon: "phone-portrait", keywords: ["phone accessories", "mobile", "phone", "charg", "magsafe"] },
-  { id: "Electronics", label: "Electronics", icon: "laptop", keywords: ["trending tech products", "tech", "electronic", "audio", "smart"] },
+  { id: "Electronics", label: "Electronics", icon: "laptop", keywords: ["trending tech products", "tech", "electronic", "audio", "smart", "laptop"] },
   { id: "Home & Kitchen", label: "Home & Kitchen", icon: "home", keywords: ["home & kitchen gadgets", "home", "kitchen", "living"] },
   { id: "Fashion", label: "Fashion", icon: "shirt", keywords: ["fashion", "wear", "watch", "apparel", "bag"] },
   { id: "Appliances", label: "Appliances", icon: "desktop", keywords: ["desk setup products", "appliance", "desk", "office", "setup"] },
@@ -45,6 +45,15 @@ const US_COLLECTIONS: CollectionItem[] = [
   { id: "Pet", label: "Pet", icon: "paw", keywords: ["pet tech", "pet", "dog", "cat"] },
 ];
 
+const TRENDING_SEARCHES = [
+  "Wireless Charger",
+  "Smart Lamp",
+  "Desk Organizer",
+  "Gaming Mouse",
+  "Travel Pouch",
+  "Kitchen Gadget",
+];
+
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { addToCart, totalCount, toggleWishlist, isWishlisted } = useCart();
@@ -54,17 +63,21 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [smartSearchOpen, setSmartSearchOpen] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([
+    "MagSafe",
+    "Desk Setup",
+    "LED Light",
+  ]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState<SortOption>("featured");
   const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
   const [onlyDeals, setOnlyDeals] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
-  // Track which product buttons show "Added to Cart" for 4 seconds
   const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
   const buttonTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  // In-app floating popup banner state
   const [toastProduct, setToastProduct] = useState<Product | null>(null);
   const toastAnim = useRef(new Animated.Value(140)).current;
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -134,6 +147,31 @@ export default function HomeScreen() {
     return list;
   }, [products, selectedCategory, search, priceFilter, onlyDeals, sortBy]);
 
+  const instantSuggestions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [];
+    return products
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.category && p.category.toLowerCase().includes(q)) ||
+          (p.brand && p.brand.toLowerCase().includes(q))
+      )
+      .slice(0, 6);
+  }, [products, search]);
+
+  const applySearchTerm = (term: string) => {
+    const cleaned = term.trim();
+    setSearch(cleaned);
+    if (cleaned) {
+      setRecentSearches((prev) => [
+        cleaned,
+        ...prev.filter((item) => item.toLowerCase() !== cleaned.toLowerCase()),
+      ].slice(0, 5));
+    }
+    setSmartSearchOpen(false);
+  };
+
   const showCartPopup = (item: Product) => {
     setToastProduct(item);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -157,7 +195,6 @@ export default function HomeScreen() {
   const handleQuickAdd = (item: Product) => {
     addToCart(item, 1);
 
-    // Button changes to "Added to Cart" for 4 seconds (4000ms)
     setAddedIds((prev) => ({ ...prev, [item.id]: true }));
     if (buttonTimers.current[item.id]) {
       clearTimeout(buttonTimers.current[item.id]);
@@ -170,7 +207,6 @@ export default function HomeScreen() {
       });
     }, 4000);
 
-    // Show floating in-app popup
     showCartPopup(item);
   };
 
@@ -184,7 +220,6 @@ export default function HomeScreen() {
 
   const renderHeader = () => (
     <View>
-      {/* Flipkart / Amazon style Visual US Collection Icon Strip */}
       <View style={styles.catSection}>
         <ScrollView
           horizontal
@@ -220,7 +255,6 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
-      {/* Hero Banner */}
       <View style={styles.heroCard}>
         <View style={styles.heroBadge}>
           <Ionicons name="shield-checkmark" size={12} color="#FF8A34" />
@@ -248,7 +282,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* 4-Column Store Reliability Strip */}
       <View style={styles.trustGrid}>
         <View style={styles.trustItem}>
           <View style={styles.trustIconBox}>
@@ -280,12 +313,10 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Prominent Filter & Sort Action Bar */}
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitleRow}>
           <Text style={styles.sectionTitle}>
-            {selectedCategory === "All" ? "Top Picks For You" : selectedCategory}{" "}
-            <Text style={styles.countText}>({filteredProducts.length})</Text>
+            {selectedCategory === "All" ? "Top Picks For You" : selectedCategory}
           </Text>
 
           <TouchableOpacity
@@ -303,7 +334,7 @@ export default function HomeScreen() {
                 activeFilterCount > 0 && styles.filterMainBtnTextActive,
               ]}
             >
-              Filter & Sort{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              Filter & Sort
             </Text>
           </TouchableOpacity>
         </View>
@@ -444,11 +475,6 @@ export default function HomeScreen() {
                 size={18}
                 color={activeFilterCount > 0 ? "#FFFFFF" : "#111827"}
               />
-              {activeFilterCount > 0 && (
-                <View style={styles.filterDot}>
-                  <Text style={styles.filterDotText}>{activeFilterCount}</Text>
-                </View>
-              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -466,21 +492,35 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color="#6B7280" style={{ marginRight: 8 }} />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search gadgets, essentials, fashion..."
-            placeholderTextColor="#9CA3AF"
-            style={styles.searchInput}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch("")}>
-              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+        {/* Modern Smart Search Pill Trigger */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.modernSearchBar}
+          onPress={() => setSmartSearchOpen(true)}
+        >
+          <View style={styles.searchIconPill}>
+            <Ionicons name="search" size={16} color="#FFFFFF" />
+          </View>
+          <Text
+            style={[styles.searchPlaceholderText, !!search && styles.searchActiveText]}
+            numberOfLines={1}
+          >
+            {search ? search : "Search PICKIT. gadgets, gear, deals..."}
+          </Text>
+          {search.length > 0 ? (
+            <TouchableOpacity
+              onPress={() => setSearch("")}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close-circle" size={19} color="#6B7280" />
             </TouchableOpacity>
+          ) : (
+            <View style={styles.smartTag}>
+              <Ionicons name="sparkles" size={11} color="#FF6B00" />
+              <Text style={styles.smartTagText}>Smart</Text>
+            </View>
           )}
-        </View>
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -523,6 +563,138 @@ export default function HomeScreen() {
           }
         />
       )}
+
+      {/* Smart Search Modal */}
+      <Modal
+        visible={smartSearchOpen}
+        animationType="fade"
+        transparent={false}
+        onRequestClose={() => setSmartSearchOpen(false)}
+      >
+        <SafeAreaView style={styles.smartModalContainer} edges={["top"]}>
+          <View style={styles.smartTopBar}>
+            <TouchableOpacity
+              onPress={() => setSmartSearchOpen(false)}
+              style={styles.smartBackBtn}
+            >
+              <Ionicons name="arrow-back" size={22} color="#111827" />
+            </TouchableOpacity>
+            <View style={styles.smartInputWrap}>
+              <Ionicons name="search" size={18} color="#FF6B00" style={{ marginRight: 8 }} />
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search products, categories, brands..."
+                placeholderTextColor="#9CA3AF"
+                autoFocus
+                returnKeyType="search"
+                onSubmitEditing={() => applySearchTerm(search)}
+                style={styles.smartInput}
+              />
+              {search.length > 0 && (
+                <TouchableOpacity onPress={() => setSearch("")}>
+                  <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.smartBody} keyboardShouldPersistTaps="handled">
+            {search.trim().length > 0 && (
+              <View style={styles.smartSection}>
+                <Text style={styles.smartSectionTitle}>Instant Matches</Text>
+                {instantSuggestions.length === 0 ? (
+                  <Text style={styles.noSuggestText}>
+                    Press Enter to search for "{search}"
+                  </Text>
+                ) : (
+                  instantSuggestions.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.suggestRow}
+                      onPress={() => {
+                        setSmartSearchOpen(false);
+                        navigation.navigate("ProductDetail", { product: item });
+                      }}
+                    >
+                      <Image
+                        source={{ uri: item.image || "https://via.placeholder.com/100" }}
+                        style={styles.suggestThumb}
+                      />
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={styles.suggestName} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        <Text style={styles.suggestPrice}>${item.price.toFixed(2)}</Text>
+                      </View>
+                      <Ionicons name="arrow-up-outline" size={18} color="#9CA3AF" />
+                    </TouchableOpacity>
+                  ))
+                )}
+              </View>
+            )}
+
+            {recentSearches.length > 0 && (
+              <View style={styles.smartSection}>
+                <View style={styles.smartRowHeader}>
+                  <Text style={styles.smartSectionTitle}>Recent Searches</Text>
+                  <TouchableOpacity onPress={() => setRecentSearches([])}>
+                    <Text style={styles.clearSmallText}>Clear</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.chipCluster}>
+                  {recentSearches.map((term) => (
+                    <TouchableOpacity
+                      key={term}
+                      style={styles.historyChip}
+                      onPress={() => applySearchTerm(term)}
+                    >
+                      <Ionicons name="time-outline" size={14} color="#6B7280" />
+                      <Text style={styles.historyChipText}>{term}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <View style={styles.smartSection}>
+              <Text style={styles.smartSectionTitle}>Trending on PICKIT.</Text>
+              <View style={styles.chipCluster}>
+                {TRENDING_SEARCHES.map((term) => (
+                  <TouchableOpacity
+                    key={term}
+                    style={styles.trendingChip}
+                    onPress={() => applySearchTerm(term)}
+                  >
+                    <Ionicons name="trending-up" size={14} color="#FF6B00" />
+                    <Text style={styles.trendingChipText}>{term}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.smartSection}>
+              <Text style={styles.smartSectionTitle}>Quick Browse Departments</Text>
+              <View style={styles.chipCluster}>
+                {US_COLLECTIONS.filter((c) => c.id !== "All").map((col) => (
+                  <TouchableOpacity
+                    key={col.id}
+                    style={styles.deptQuickChip}
+                    onPress={() => {
+                      setSelectedCategory(col.id);
+                      setSearch("");
+                      setSmartSearchOpen(false);
+                    }}
+                  >
+                    <Ionicons name={col.icon} size={14} color="#111827" />
+                    <Text style={styles.deptQuickText}>{col.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
 
       {/* In-App Floating "Added to Cart" Popup Banner */}
       {toastProduct && (
@@ -647,9 +819,7 @@ export default function HomeScreen() {
                 style={styles.applyBtn}
                 onPress={() => setFilterModalVisible(false)}
               >
-                <Text style={styles.applyBtnText}>
-                  Show {filteredProducts.length} Results
-                </Text>
+                <Text style={styles.applyBtnText}>Apply Filters</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -694,24 +864,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
   },
   headerFilterBtnActive: {
     backgroundColor: "#FF6B00",
-  },
-  filterDot: {
-    position: "absolute",
-    top: -3,
-    right: -3,
-    backgroundColor: "#111827",
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-  },
-  filterDotText: {
-    color: "#FFFFFF",
-    fontSize: 9,
-    fontWeight: "800",
   },
   headerBagBtn: {
     backgroundColor: "#111827",
@@ -735,19 +890,149 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   headerBadgeText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
-  searchBar: {
+
+  /* Modern Smart Search Bar */
+  modernSearchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 42,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 999,
+    paddingLeft: 6,
+    paddingRight: 12,
+    height: 44,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
   },
-  searchInput: { flex: 1, fontSize: 14, color: "#111827" },
+  searchIconPill: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#FF6B00",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  searchPlaceholderText: {
+    flex: 1,
+    fontSize: 13.5,
+    color: "#6B7280",
+    fontWeight: "600",
+  },
+  searchActiveText: {
+    color: "#111827",
+    fontWeight: "700",
+  },
+  smartTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#FFF7ED",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#FED7AA",
+  },
+  smartTagText: {
+    fontSize: 10.5,
+    fontWeight: "800",
+    color: "#FF6B00",
+  },
 
-  /* Flipkart / Amazon Visual Category Icon Bar */
+  /* Smart Search Modal */
+  smartModalContainer: { flex: 1, backgroundColor: "#FFFFFF" },
+  smartTopBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    gap: 10,
+  },
+  smartBackBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  smartInputWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#FF6B00",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    height: 42,
+  },
+  smartInput: { flex: 1, fontSize: 14.5, color: "#111827", fontWeight: "600" },
+  smartBody: { padding: 16, paddingBottom: 40 },
+  smartSection: { marginBottom: 22 },
+  smartRowHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  smartSectionTitle: {
+    fontSize: 14.5,
+    fontWeight: "900",
+    color: "#111827",
+    marginBottom: 10,
+  },
+  clearSmallText: { fontSize: 12, fontWeight: "700", color: "#FF6B00" },
+  chipCluster: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  historyChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  historyChipText: { fontSize: 12.5, fontWeight: "700", color: "#374151" },
+  trendingChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#FFF7ED",
+    borderWidth: 1,
+    borderColor: "#FED7AA",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  trendingChipText: { fontSize: 12.5, fontWeight: "700", color: "#111827" },
+  deptQuickChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  deptQuickText: { fontSize: 12.5, fontWeight: "700", color: "#111827" },
+  suggestRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  suggestThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: "#F3F4F6" },
+  suggestName: { fontSize: 13.5, fontWeight: "700", color: "#111827" },
+  suggestPrice: { fontSize: 13, fontWeight: "800", color: "#FF6B00", marginTop: 2 },
+  noSuggestText: { fontSize: 13, color: "#6B7280" },
+
+  /* Category Icon Strip */
   catSection: {
     backgroundColor: "#FFFFFF",
     paddingTop: 12,
@@ -755,15 +1040,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
-  catRow: {
-    paddingHorizontal: 12,
-    gap: 8,
-  },
-  catTile: {
-    alignItems: "center",
-    width: 82,
-    paddingHorizontal: 2,
-  },
+  catRow: { paddingHorizontal: 12, gap: 8 },
+  catTile: { alignItems: "center", width: 82, paddingHorizontal: 2 },
   catIconCircle: {
     width: 48,
     height: 48,
@@ -775,10 +1053,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 6,
   },
-  catIconCircleActive: {
-    backgroundColor: "#FF6B00",
-    borderColor: "#FF6B00",
-  },
+  catIconCircleActive: { backgroundColor: "#FF6B00", borderColor: "#FF6B00" },
   catLabel: {
     fontSize: 11,
     fontWeight: "700",
@@ -787,10 +1062,7 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     minHeight: 28,
   },
-  catLabelActive: {
-    color: "#FF6B00",
-    fontWeight: "800",
-  },
+  catLabelActive: { color: "#FF6B00", fontWeight: "800" },
   catIndicator: {
     height: 3,
     width: 28,
@@ -798,9 +1070,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     marginTop: 4,
   },
-  catIndicatorActive: {
-    backgroundColor: "#FF6B00",
-  },
+  catIndicatorActive: { backgroundColor: "#FF6B00" },
 
   /* Hero Card */
   heroCard: {
@@ -875,7 +1145,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sectionTitle: { fontSize: 16.5, fontWeight: "900", color: "#111827" },
-  countText: { color: "#6B7280", fontWeight: "600", fontSize: 13.5 },
   filterMainBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -887,18 +1156,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
   },
-  filterMainBtnActive: {
-    backgroundColor: "#FF6B00",
-    borderColor: "#FF6B00",
-  },
-  filterMainBtnText: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#111827",
-  },
-  filterMainBtnTextActive: {
-    color: "#FFFFFF",
-  },
+  filterMainBtnActive: { backgroundColor: "#FF6B00", borderColor: "#FF6B00" },
+  filterMainBtnText: { fontSize: 12, fontWeight: "800", color: "#111827" },
+  filterMainBtnTextActive: { color: "#FFFFFF" },
   sortChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -1067,18 +1327,8 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sheetTitle: { fontSize: 18, fontWeight: "900", color: "#111827" },
-  sheetLabel: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#374151",
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  sheetChipWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
+  sheetLabel: { fontSize: 13, fontWeight: "800", color: "#374151", marginTop: 10, marginBottom: 8 },
+  sheetChipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   sheetChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1087,10 +1337,7 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     backgroundColor: "#F9FAFB",
   },
-  sheetChipActive: {
-    borderColor: "#FF6B00",
-    backgroundColor: "#FFF7ED",
-  },
+  sheetChipActive: { borderColor: "#FF6B00", backgroundColor: "#FFF7ED" },
   sheetChipText: { fontSize: 12.5, fontWeight: "700", color: "#374151" },
   sheetChipTextActive: { color: "#FF6B00", fontWeight: "800" },
   dealToggleRow: {
@@ -1103,16 +1350,9 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     backgroundColor: "#F9FAFB",
   },
-  dealToggleRowActive: {
-    borderColor: "#FF6B00",
-    backgroundColor: "#FFF7ED",
-  },
+  dealToggleRowActive: { borderColor: "#FF6B00", backgroundColor: "#FFF7ED" },
   dealToggleText: { fontSize: 13.5, fontWeight: "700", color: "#111827" },
-  sheetFooter: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 20,
-  },
+  sheetFooter: { flexDirection: "row", gap: 10, marginTop: 20 },
   clearBtn: {
     flex: 1,
     paddingVertical: 13,
@@ -1140,11 +1380,6 @@ const styles = StyleSheet.create({
   emptyBox: { padding: 36, alignItems: "center" },
   emptyTitle: { fontSize: 16, fontWeight: "800", color: "#111827", marginBottom: 4 },
   emptySub: { fontSize: 13, color: "#6B7280", textAlign: "center", marginBottom: 12 },
-  resetEmptyBtn: {
-    backgroundColor: "#111827",
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 8,
-  },
+  resetEmptyBtn: { backgroundColor: "#111827", paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8 },
   resetEmptyText: { color: "#FFFFFF", fontSize: 12.5, fontWeight: "800" },
 });

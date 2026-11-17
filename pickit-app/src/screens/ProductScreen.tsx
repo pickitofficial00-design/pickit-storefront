@@ -83,7 +83,7 @@ export default function ProductScreen() {
             <Ionicons
               name={saved ? "heart" : "heart-outline"}
               size={23}
-              color={saved ? "#EF4444" : "#FFFFFF"}
+              color={saved ? "#EF4444" : "#111827"}
             />
           </TouchableOpacity>
         </View>
@@ -224,24 +224,24 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 14,
     right: 14,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(17, 24, 39, 0.78)",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
     zIndex: 10,
   },
   wishlistBtnSaved: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#FECACA",
+    backgroundColor: "#FFF1F2",
+    borderColor: "#FECDD3",
   },
   infoCard: {
     backgroundColor: "#FFFFFF",

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  FlatList,
   Image,
   Modal,
   ScrollView,
@@ -12,11 +13,26 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useCart } from "../context/CartContext";
+import { Product } from "../services/storeApi";
 
 export default function AccountScreen() {
   const navigation = useNavigation<any>();
   const { wishlist, toggleWishlist, addToCart } = useCart();
   const [policyModal, setPolicyModal] = useState<{ title: string; body: string } | null>(null);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
+
+  const handleQuickAdd = (item: Product) => {
+    addToCart(item, 1);
+    setAddedMap((prev) => ({ ...prev, [item.id]: true }));
+    setTimeout(() => {
+      setAddedMap((prev) => {
+        const next = { ...prev };
+        delete next[item.id];
+        return next;
+      });
+    }, 3000);
+  };
 
   const policies: {
     icon: keyof typeof Ionicons.glyphMap;
@@ -50,6 +66,84 @@ export default function AccountScreen() {
     },
   ];
 
+  const renderWishGridItem = ({ item }: { item: Product }) => {
+    const isAdded = !!addedMap[item.id];
+    const rating = item.rating && item.rating > 0 ? item.rating.toFixed(1) : "4.8";
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={styles.card}
+        onPress={() => {
+          setWishlistOpen(false);
+          navigation.navigate("ProductDetail", { product: item });
+        }}
+      >
+        <View style={styles.imageWrap}>
+          <Image
+            source={{ uri: item.image || "https://via.placeholder.com/400x400.png?text=PICKIT" }}
+            style={styles.productImage}
+            resizeMode="cover"
+          />
+          {item.discount > 0 && (
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>{item.discount}% OFF</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.heartBtnSaved}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              toggleWishlist(item);
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="heart" size={16} color="#EF4444" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.cardBody}>
+          <View style={styles.assuredRow}>
+            <Text style={styles.brandText} numberOfLines={1}>
+              {item.brand || "PICKIT"}
+            </Text>
+            <View style={styles.assuredPill}>
+              <Ionicons name="checkmark-circle" size={11} color="#FF6B00" />
+              <Text style={styles.assuredText}>Assured</Text>
+            </View>
+          </View>
+
+          <Text style={styles.productName} numberOfLines={2}>
+            {item.name}
+          </Text>
+
+          <View style={styles.ratingRow}>
+            <View style={styles.greenRatingBadge}>
+              <Text style={styles.greenRatingText}>{rating} ★</Text>
+            </View>
+            <Text style={styles.deliveryTag}>Free Delivery</Text>
+          </View>
+
+          <View style={styles.priceRow}>
+            <Text style={styles.priceText}>${item.price.toFixed(2)}</Text>
+            <TouchableOpacity
+              style={[styles.addBtn, isAdded && styles.addBtnSuccess]}
+              onPress={() => handleQuickAdd(item)}
+              activeOpacity={0.85}
+            >
+              <Ionicons
+                name={isAdded ? "checkmark-circle" : "cart-outline"}
+                size={13}
+                color="#FFFFFF"
+              />
+              <Text style={styles.addBtnText}>{isAdded ? "Added" : "Add"}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -73,6 +167,7 @@ export default function AccountScreen() {
           </View>
         </View>
 
+        {/* Flipkart / Amazon-style 2-Column Quick Action Row */}
         <View style={styles.quickActionRow}>
           <TouchableOpacity
             style={styles.quickActionCard}
@@ -85,57 +180,17 @@ export default function AccountScreen() {
 
           <TouchableOpacity
             style={styles.quickActionCard}
-            onPress={() => navigation.navigate("Categories")}
+            onPress={() => setWishlistOpen(true)}
             activeOpacity={0.85}
           >
-            <Ionicons name="grid-outline" size={20} color="#FF6B00" />
-            <Text style={styles.quickActionText}>Departments</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Saved Wishlist ({wishlist.length})</Text>
-          {wishlist.length === 0 ? (
-            <View style={styles.emptyWish}>
-              <Ionicons name="heart-outline" size={22} color="#9CA3AF" style={{ marginBottom: 6 }} />
-              <Text style={styles.emptyWishText}>
-                Tap the heart icon on any product to save it here for later.
-              </Text>
-            </View>
-          ) : (
-            wishlist.map((item) => (
-              <View key={item.id} style={styles.wishCard}>
-                <TouchableOpacity
-                  style={{ flexDirection: "row", flex: 1, alignItems: "center" }}
-                  onPress={() => navigation.navigate("ProductDetail", { product: item })}
-                >
-                  <Image
-                    source={{ uri: item.image || "https://via.placeholder.com/150" }}
-                    style={styles.wishImg}
-                  />
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.wishName} numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                    <Text style={styles.wishPrice}>${item.price.toFixed(2)}</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.moveBtn}
-                  onPress={() => addToCart(item, 1)}
-                >
-                  <Ionicons name="cart-outline" size={14} color="#FFFFFF" />
-                  <Text style={styles.moveBtnText}>Add</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{ paddingLeft: 10 }}
-                  onPress={() => toggleWishlist(item)}
-                >
-                  <Ionicons name="close-circle-outline" size={20} color="#9CA3AF" />
-                </TouchableOpacity>
+            <Ionicons name="heart-outline" size={20} color="#FF6B00" />
+            <Text style={styles.quickActionText}>Your Wishlist</Text>
+            {wishlist.length > 0 && (
+              <View style={styles.wishCountBadge}>
+                <Text style={styles.wishCountText}>{wishlist.length}</Text>
               </View>
-            ))
-          )}
+            )}
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -161,6 +216,58 @@ export default function AccountScreen() {
         <Text style={styles.footerNote}>PICKIT. Official Mobile App • Powered by Shopify SSL</Text>
       </ScrollView>
 
+      {/* Dedicated "Your Wishlist" Modal (Shows Home-Style Product Grid Only When Tapped) */}
+      <Modal
+        visible={wishlistOpen}
+        animationType="slide"
+        onRequestClose={() => setWishlistOpen(false)}
+      >
+        <SafeAreaView style={styles.wishModalContainer} edges={["top", "bottom"]}>
+          <View style={styles.wishModalHeader}>
+            <TouchableOpacity
+              style={styles.wishBackBtn}
+              onPress={() => setWishlistOpen(false)}
+            >
+              <Ionicons name="arrow-back" size={20} color="#111827" />
+              <Text style={styles.wishBackText}>Account</Text>
+            </TouchableOpacity>
+            <Text style={styles.wishModalTitle}>Your Wishlist</Text>
+            <View style={{ width: 70 }} />
+          </View>
+
+          {wishlist.length === 0 ? (
+            <View style={styles.emptyWishBox}>
+              <View style={styles.emptyHeartCircle}>
+                <Ionicons name="heart-outline" size={34} color="#FF6B00" />
+              </View>
+              <Text style={styles.emptyWishTitle}>Your wishlist is empty</Text>
+              <Text style={styles.emptyWishSub}>
+                Tap the heart icon on any product while browsing to save it to your wishlist.
+              </Text>
+              <TouchableOpacity
+                style={styles.browseBtn}
+                onPress={() => {
+                  setWishlistOpen(false);
+                  navigation.navigate("Home");
+                }}
+              >
+                <Text style={styles.browseBtnText}>Explore Products</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <FlatList
+              data={wishlist}
+              keyExtractor={(item) => item.id}
+              numColumns={2}
+              columnWrapperStyle={styles.gridRow}
+              contentContainerStyle={{ paddingTop: 14, paddingBottom: 30 }}
+              renderItem={renderWishGridItem}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
+
+      {/* Policy Modal */}
       <Modal visible={!!policyModal} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -189,7 +296,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    marginBottom: 18,
+    marginBottom: 14,
   },
   wordmark: {
     fontSize: 28,
@@ -210,11 +317,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
   },
-  trustChipText: {
-    color: "#111827",
-    fontSize: 11.5,
-    fontWeight: "700",
-  },
+  trustChipText: { color: "#111827", fontSize: 11.5, fontWeight: "700" },
   quickActionRow: {
     flexDirection: "row",
     gap: 10,
@@ -225,10 +328,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 7,
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
-    paddingVertical: 13,
+    paddingVertical: 14,
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
@@ -237,40 +340,19 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#111827",
   },
+  wishCountBadge: {
+    backgroundColor: "#FF6B00",
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  wishCountText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
+  },
   section: { marginBottom: 18 },
   sectionTitle: { fontSize: 16, fontWeight: "800", color: "#111827", marginBottom: 10 },
-  emptyWish: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 18,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  emptyWishText: { fontSize: 13, color: "#6B7280", textAlign: "center" },
-  wishCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  wishImg: { width: 52, height: 52, borderRadius: 8, backgroundColor: "#F3F4F6" },
-  wishName: { fontSize: 13.5, fontWeight: "700", color: "#111827" },
-  wishPrice: { fontSize: 14, fontWeight: "900", color: "#FF6B00", marginTop: 2 },
-  moveBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#111827",
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-    borderRadius: 8,
-  },
-  moveBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
   menuRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -293,6 +375,135 @@ const styles = StyleSheet.create({
   menuTitle: { fontSize: 14.5, fontWeight: "800", color: "#111827" },
   menuSub: { fontSize: 12, color: "#6B7280", marginTop: 1 },
   footerNote: { textAlign: "center", fontSize: 11.5, color: "#9CA3AF", marginTop: 8 },
+
+  /* Dedicated Your Wishlist Modal (Home-Style Product Grid) */
+  wishModalContainer: { flex: 1, backgroundColor: "#F1F5F9" },
+  wishModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  wishBackBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  wishBackText: { fontSize: 12.5, fontWeight: "800", color: "#111827" },
+  wishModalTitle: { fontSize: 17, fontWeight: "900", color: "#111827" },
+  emptyWishBox: { flex: 1, justifyContent: "center", alignItems: "center", padding: 28 },
+  emptyHeartCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "#FFF7ED",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  emptyWishTitle: { fontSize: 18, fontWeight: "900", color: "#111827", marginBottom: 6 },
+  emptyWishSub: { fontSize: 13.5, color: "#6B7280", textAlign: "center", lineHeight: 20, marginBottom: 20 },
+  browseBtn: {
+    backgroundColor: "#111827",
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 999,
+  },
+  browseBtnText: { color: "#FFFFFF", fontSize: 13.5, fontWeight: "800" },
+
+  gridRow: { paddingHorizontal: 12, justifyContent: "space-between", marginBottom: 10 },
+  card: {
+    width: "48.5%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  imageWrap: { width: "100%", height: 155, backgroundColor: "#F8FAFC", position: "relative" },
+  productImage: { width: "100%", height: "100%" },
+  discountBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: "#059669",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 5,
+  },
+  discountText: { color: "#FFFFFF", fontSize: 10, fontWeight: "800" },
+  heartBtnSaved: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#FFF1F2",
+    borderWidth: 1,
+    borderColor: "#FECDD3",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardBody: { padding: 10 },
+  assuredRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 3,
+  },
+  brandText: { fontSize: 10, fontWeight: "800", color: "#6B7280", textTransform: "uppercase", flex: 1 },
+  assuredPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    backgroundColor: "#FFF7ED",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  assuredText: { fontSize: 9.5, fontWeight: "800", color: "#FF6B00" },
+  productName: { fontSize: 13.5, fontWeight: "700", color: "#111827", lineHeight: 18, minHeight: 36 },
+  ratingRow: { flexDirection: "row", alignItems: "center", marginTop: 6, marginBottom: 8, gap: 6 },
+  greenRatingBadge: {
+    backgroundColor: "#15803D",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  greenRatingText: { color: "#FFFFFF", fontSize: 10.5, fontWeight: "800" },
+  deliveryTag: { fontSize: 11, color: "#374151", fontWeight: "700" },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 4,
+  },
+  priceText: { fontSize: 15, fontWeight: "900", color: "#111827" },
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#111827",
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  addBtnSuccess: { backgroundColor: "#059669" },
+  addBtnText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
+
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(17,24,39,0.55)",

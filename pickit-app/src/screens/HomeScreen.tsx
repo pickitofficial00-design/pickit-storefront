@@ -292,7 +292,7 @@ export default function HomeScreen() {
         </View>
         <View style={styles.trustItem}>
           <View style={styles.trustIconBox}>
-            <Ionicons name="refresh-circle-outline" size={18} color="#FF6B00" />
+            <Ionicons name="refresh-circle-outline" size={16} color="#FF6B00" />
           </View>
           <Text style={styles.trustItemTitle}>30-Day Return</Text>
           <Text style={styles.trustItemSub}>Easy refund</Text>
@@ -421,8 +421,8 @@ export default function HomeScreen() {
           >
             <Ionicons
               name={saved ? "heart" : "heart-outline"}
-              size={18}
-              color={saved ? "#EF4444" : "#FFFFFF"}
+              size={16}
+              color={saved ? "#EF4444" : "#111827"}
             />
           </TouchableOpacity>
         </View>
@@ -487,7 +487,7 @@ export default function HomeScreen() {
             >
               <Ionicons
                 name="options-outline"
-                size={18}
+                size={16}
                 color={activeFilterCount > 0 ? "#FFFFFF" : "#111827"}
               />
             </TouchableOpacity>
@@ -595,7 +595,7 @@ export default function HomeScreen() {
               <Ionicons name="arrow-back" size={22} color="#111827" />
             </TouchableOpacity>
             <View style={styles.smartInputWrap}>
-              <Ionicons name="search" size={18} color="#FF6B00" style={{ marginRight: 8 }} />
+              <Ionicons name="search" size={16} color="#FF6B00" style={{ marginRight: 8 }} />
               <TextInput
                 value={search}
                 onChangeText={setSearch}
@@ -608,7 +608,7 @@ export default function HomeScreen() {
               />
               {search.length > 0 && (
                 <TouchableOpacity onPress={() => setSearch("")}>
-                  <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                  <Ionicons name="close-circle" size={16} color="#9CA3AF" />
                 </TouchableOpacity>
               )}
             </View>
@@ -642,7 +642,7 @@ export default function HomeScreen() {
                         </Text>
                         <Text style={styles.suggestPrice}>${item.price.toFixed(2)}</Text>
                       </View>
-                      <Ionicons name="arrow-up-outline" size={18} color="#9CA3AF" />
+                      <Ionicons name="arrow-up-outline" size={16} color="#9CA3AF" />
                     </TouchableOpacity>
                   ))
                 )}
@@ -1226,24 +1226,24 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: "rgba(17, 24, 39, 0.72)",
-    borderWidth: 1.5,
-    borderColor: "#FFFFFF",
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    backgroundColor: "rgba(255, 255, 255, 0.88)",
+    borderWidth: 1,
+    borderColor: "rgba(229, 231, 235, 0.9)",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
     zIndex: 10,
   },
   heartBtnSaved: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#FECACA",
+    backgroundColor: "#FFF1F2",
+    borderColor: "#FECDD3",
   },
   cardBody: { padding: 10 },
   assuredRow: {

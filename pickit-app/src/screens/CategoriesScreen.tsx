@@ -236,8 +236,8 @@ export default function CategoriesScreen() {
           >
             <Ionicons
               name={saved ? "heart" : "heart-outline"}
-              size={18}
-              color={saved ? "#EF4444" : "#FFFFFF"}
+              size={16}
+              color={saved ? "#EF4444" : "#111827"}
             />
           </TouchableOpacity>
         </View>
@@ -524,24 +524,24 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: "rgba(17, 24, 39, 0.72)",
-    borderWidth: 1.5,
-    borderColor: "#FFFFFF",
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    backgroundColor: "rgba(255, 255, 255, 0.88)",
+    borderWidth: 1,
+    borderColor: "rgba(229, 231, 235, 0.9)",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
     zIndex: 10,
   },
   heartBtnSaved: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#FECACA",
+    backgroundColor: "#FFF1F2",
+    borderColor: "#FECDD3",
   },
   cardBody: { padding: 10 },
   assuredRow: {

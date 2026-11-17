@@ -22,15 +22,19 @@ interface CollectionCardMeta {
 }
 
 const US_DEPARTMENTS: CollectionCardMeta[] = [
-  { id: "All", label: "All Deals", subtitle: "Full Verified Catalog", icon: "grid-outline", keywords: [] },
-  { id: "Top Rated", label: "Top Rated", subtitle: "4.8★+ Customer Favorites", icon: "trophy-outline", keywords: ["top rated", "best", "featured"] },
-  { id: "Mobile & Charging", label: "Mobile & Charging", subtitle: "Cases, MagSafe & Power", icon: "phone-portrait-outline", keywords: ["mobile", "phone", "charg", "cable", "magsafe"] },
-  { id: "Everyday Tech", label: "Everyday Tech", subtitle: "Smart Audio & Gadgets", icon: "hardware-chip-outline", keywords: ["tech", "electronic", "gadget", "smart", "audio"] },
-  { id: "Work From Home", label: "Work From Home", subtitle: "Desk & Office Essentials", icon: "desktop-outline", keywords: ["work", "desk", "office", "setup", "laptop"] },
-  { id: "Gaming Setup", label: "Gaming Setup", subtitle: "Controllers, RGB & Gear", icon: "game-controller-outline", keywords: ["game", "gaming", "rgb", "controller"] },
-  { id: "Travel Essentials", label: "Travel Essentials", subtitle: "Organizers & Portable Gear", icon: "airplane-outline", keywords: ["travel", "bag", "portable", "trip"] },
-  { id: "Fitness & Wellness", label: "Fitness & Wellness", subtitle: "Active & Recovery Gear", icon: "fitness-outline", keywords: ["fitness", "wellness", "outdoor", "sport", "health"] },
-  { id: "Home Upgrades", label: "Home Upgrades", subtitle: "Kitchen & Smart Living", icon: "home-outline", keywords: ["home", "kitchen", "living", "lamp"] },
+  { id: "All", label: "For you", subtitle: "All Verified Picks", icon: "sparkles-outline", keywords: [] },
+  { id: "Mobiles & Accessories", label: "Mobiles & Accessories", subtitle: "Cases, Chargers & Gear", icon: "phone-portrait-outline", keywords: ["phone accessories", "mobile", "phone", "charg", "magsafe"] },
+  { id: "Electronics", label: "Electronics", subtitle: "Trending Tech & Audio", icon: "hardware-chip-outline", keywords: ["trending tech products", "tech", "electronic", "audio", "smart"] },
+  { id: "Home & Kitchen", label: "Home & Kitchen", subtitle: "Kitchen & Home Essentials", icon: "home-outline", keywords: ["home & kitchen gadgets", "home", "kitchen", "living"] },
+  { id: "Fashion", label: "Fashion", subtitle: "Style & Everyday Wear", icon: "shirt-outline", keywords: ["fashion", "wear", "watch", "apparel", "bag"] },
+  { id: "Appliances", label: "Appliances", subtitle: "Desk & Workspace Gear", icon: "desktop-outline", keywords: ["desk setup products", "appliance", "desk", "office", "setup"] },
+  { id: "Gaming", label: "Gaming", subtitle: "Pro Gaming Accessories", icon: "game-controller-outline", keywords: ["gaming accessories", "gaming", "game", "rgb", "controller"] },
+  { id: "Smart Home", label: "Smart Home", subtitle: "Connected Home Gadgets", icon: "bulb-outline", keywords: ["smart home gadgets", "smart home", "lamp", "light", "sensor"] },
+  { id: "Sports & Fitness", label: "Sports & Fitness", subtitle: "Outdoor & Fitness Gear", icon: "fitness-outline", keywords: ["outdoor & fitness gadgets", "fitness", "sport", "outdoor", "wellness"] },
+  { id: "Travel", label: "Travel", subtitle: "Travel & On-The-Go Gear", icon: "airplane-outline", keywords: ["travel gadgets", "travel", "portable", "luggage", "trip"] },
+  { id: "Kids & Toys", label: "Kids & Toys", subtitle: "Fun & Learning for Kids", icon: "happy-outline", keywords: ["kids", "toy", "child", "play"] },
+  { id: "Accessories", label: "Accessories", subtitle: "Car & Everyday Add-Ons", icon: "car-sport-outline", keywords: ["car gadgets", "car", "auto", "accessor"] },
+  { id: "Pet", label: "Pet", subtitle: "Smart Pet Tech & Care", icon: "paw-outline", keywords: ["pet tech", "pet", "dog", "cat"] },
 ];
 
 export default function CategoriesScreen() {
@@ -50,9 +54,6 @@ export default function CategoriesScreen() {
     if (dept.id === "All") return true;
     const catLower = (p.category || "").toLowerCase();
     const nameLower = (p.name || "").toLowerCase();
-    if (dept.id === "Top Rated") {
-      return (p.rating || 4.8) >= 4.7 || catLower.includes("top rated");
-    }
     return (
       catLower === dept.id.toLowerCase() ||
       dept.keywords.some((kw) => catLower.includes(kw) || nameLower.includes(kw))

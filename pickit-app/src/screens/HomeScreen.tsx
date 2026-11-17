@@ -30,15 +30,19 @@ interface CollectionItem {
 }
 
 const US_COLLECTIONS: CollectionItem[] = [
-  { id: "All", label: "All Deals", icon: "grid", keywords: [] },
-  { id: "Top Rated", label: "Top Rated", icon: "trophy", keywords: ["top rated", "best", "featured"] },
-  { id: "Mobile & Charging", label: "Mobile & Charging", icon: "phone-portrait", keywords: ["mobile", "phone", "charg", "cable", "magsafe"] },
-  { id: "Everyday Tech", label: "Everyday Tech", icon: "hardware-chip", keywords: ["tech", "electronic", "gadget", "smart", "audio"] },
-  { id: "Work From Home", label: "Work From Home", icon: "desktop", keywords: ["work", "desk", "office", "setup", "laptop"] },
-  { id: "Gaming Setup", label: "Gaming Setup", icon: "game-controller", keywords: ["game", "gaming", "rgb", "controller"] },
-  { id: "Travel Essentials", label: "Travel Essentials", icon: "airplane", keywords: ["travel", "bag", "portable", "trip"] },
-  { id: "Fitness & Wellness", label: "Fitness & Wellness", icon: "fitness", keywords: ["fitness", "wellness", "outdoor", "sport", "health"] },
-  { id: "Home Upgrades", label: "Home Upgrades", icon: "home", keywords: ["home", "kitchen", "living", "lamp"] },
+  { id: "All", label: "For you", icon: "sparkles", keywords: [] },
+  { id: "Mobiles & Accessories", label: "Mobiles & Accessories", icon: "phone-portrait", keywords: ["phone accessories", "mobile", "phone", "charg", "magsafe"] },
+  { id: "Electronics", label: "Electronics", icon: "hardware-chip", keywords: ["trending tech products", "tech", "electronic", "audio", "smart"] },
+  { id: "Home & Kitchen", label: "Home & Kitchen", icon: "home", keywords: ["home & kitchen gadgets", "home", "kitchen", "living"] },
+  { id: "Fashion", label: "Fashion", icon: "shirt", keywords: ["fashion", "wear", "watch", "apparel", "bag"] },
+  { id: "Appliances", label: "Appliances", icon: "desktop", keywords: ["desk setup products", "appliance", "desk", "office", "setup"] },
+  { id: "Gaming", label: "Gaming", icon: "game-controller", keywords: ["gaming accessories", "gaming", "game", "rgb", "controller"] },
+  { id: "Smart Home", label: "Smart Home", icon: "bulb", keywords: ["smart home gadgets", "smart home", "lamp", "light", "sensor"] },
+  { id: "Sports & Fitness", label: "Sports & Fitness", icon: "fitness", keywords: ["outdoor & fitness gadgets", "fitness", "sport", "outdoor", "wellness"] },
+  { id: "Travel", label: "Travel", icon: "airplane", keywords: ["travel gadgets", "travel", "portable", "luggage", "trip"] },
+  { id: "Kids & Toys", label: "Kids & Toys", icon: "happy", keywords: ["kids", "toy", "child", "play"] },
+  { id: "Accessories", label: "Accessories", icon: "car-sport", keywords: ["car gadgets", "car", "auto", "accessor"] },
+  { id: "Pet", label: "Pet", icon: "paw", keywords: ["pet tech", "pet", "dog", "cat"] },
 ];
 
 export default function HomeScreen() {
@@ -99,9 +103,7 @@ export default function HomeScreen() {
         const col = US_COLLECTIONS.find((c) => c.id === selectedCategory);
         const catLower = (p.category || "").toLowerCase();
         const nameLower = (p.name || "").toLowerCase();
-        if (selectedCategory === "Top Rated") {
-          matchesCat = (p.rating || 4.8) >= 4.7 || catLower.includes("top rated");
-        } else if (col) {
+        if (col) {
           matchesCat =
             catLower === col.id.toLowerCase() ||
             col.keywords.some((kw) => catLower.includes(kw) || nameLower.includes(kw));

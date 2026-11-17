@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { fetchProducts, Product } from "../services/storeApi";
 import { useCart } from "../context/CartContext";
@@ -85,12 +86,12 @@ export default function HomeScreen() {
   const renderHeader = () => (
     <View>
       <View style={styles.trustBar}>
-        <Text style={styles.trustText}>🚚 Free US Shipping $50+  •  🔄 30-Day Returns  •  🔒 Secure Checkout</Text>
+        <Text style={styles.trustText}>Free Tracked Shipping on Orders $35+  •  30-Day Easy Returns</Text>
       </View>
 
       <View style={styles.heroCard}>
         <View style={styles.heroBadge}>
-          <Text style={styles.heroBadgeText}>🇺🇸 VERIFIED US STOREFRONT</Text>
+          <Text style={styles.heroBadgeText}>VERIFIED US STOREFRONT</Text>
         </View>
         <Text style={styles.heroTitle}>Smart Picks. Everyday Value.</Text>
         <Text style={styles.heroSubtitle}>
@@ -189,7 +190,11 @@ export default function HomeScreen() {
             onPress={() => toggleWishlist(item)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={{ fontSize: 15 }}>{saved ? "❤️" : "🤍"}</Text>
+            <Ionicons
+              name={saved ? "heart" : "heart-outline"}
+              size={17}
+              color={saved ? "#EF4444" : "#374151"}
+            />
           </TouchableOpacity>
         </View>
 
@@ -224,16 +229,17 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.topHeader}>
         <View style={styles.brandRow}>
-          <Image
-            source={require("../../assets/icon.png")}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
+          <Text style={styles.wordmark}>
+            <Text style={styles.wordmarkPick}>PICK</Text>
+            <Text style={styles.wordmarkIt}>IT.</Text>
+          </Text>
+
           <TouchableOpacity
             style={styles.headerBagBtn}
             onPress={() => navigation.navigate("Cart")}
           >
-            <Text style={styles.headerBagIcon}>🛒</Text>
+            <Ionicons name="cart-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.headerCartLabel}>Cart</Text>
             {totalCount > 0 && (
               <View style={styles.headerBadge}>
                 <Text style={styles.headerBadgeText}>{totalCount}</Text>
@@ -243,17 +249,17 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.searchBar}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Ionicons name="search-outline" size={18} color="#6B7280" style={{ marginRight: 8 }} />
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Search verified products, brands..."
+            placeholder="Search gadgets, essentials, fashion..."
             placeholderTextColor="#9CA3AF"
             style={styles.searchInput}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch("")}>
-              <Text style={styles.clearSearch}>✕</Text>
+              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
             </TouchableOpacity>
           )}
         </View>
@@ -305,7 +311,7 @@ const styles = StyleSheet.create({
   topHeader: {
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
-    paddingTop: 6,
+    paddingTop: 8,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
@@ -316,16 +322,31 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 10,
   },
-  logoImage: { width: 132, height: 38, marginLeft: -6 },
+  wordmark: {
+    fontSize: 26,
+    fontWeight: "900",
+    letterSpacing: -0.8,
+  },
+  wordmarkPick: {
+    color: "#111827",
+  },
+  wordmarkIt: {
+    color: "#FF6B00",
+  },
   headerBagBtn: {
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 12,
+    backgroundColor: "#111827",
+    paddingHorizontal: 13,
     paddingVertical: 8,
     borderRadius: 999,
     flexDirection: "row",
     alignItems: "center",
   },
-  headerBagIcon: { fontSize: 17 },
+  headerCartLabel: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+    marginLeft: 6,
+  },
   headerBadge: {
     backgroundColor: "#FF6B00",
     borderRadius: 10,
@@ -338,13 +359,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderRadius: 999,
+    paddingHorizontal: 14,
     height: 42,
   },
-  searchIcon: { fontSize: 15, marginRight: 8 },
   searchInput: { flex: 1, fontSize: 14, color: "#111827" },
-  clearSearch: { fontSize: 14, color: "#6B7280", paddingLeft: 8 },
   trustBar: {
     backgroundColor: "#111827",
     paddingVertical: 8,
@@ -395,7 +414,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     marginRight: 8,
   },
-  catPillActive: { backgroundColor: "#111827", borderColor: "#111827" },
+  catPillActive: { backgroundColor: "#FF6B00", borderColor: "#FF6B00" },
   catText: { color: "#374151", fontSize: 13, fontWeight: "700" },
   catTextActive: { color: "#FFFFFF" },
   sectionHeader: { paddingHorizontal: 14, paddingTop: 4, paddingBottom: 10 },

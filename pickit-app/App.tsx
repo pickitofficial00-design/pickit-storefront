@@ -1,6 +1,7 @@
 import React from "react";
-import { Text, Platform } from "react-native";
+import { Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -36,7 +37,7 @@ function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: "#FF6B00",
         tabBarInactiveTintColor: "#6B7280",
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "700" },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "700", marginTop: -2 },
         tabBarStyle: {
           height: Platform.OS === "ios" ? 84 : 64,
           paddingBottom: Platform.OS === "ios" ? 24 : 8,
@@ -53,7 +54,9 @@ function MainTabs() {
         component={HomeScreen}
         options={{
           tabBarLabel: "Shop",
-          tabBarIcon: ({ focused }) => <Text style={{ fontSize: 19, opacity: focused ? 1 : 0.65 }}>🛍️</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -61,17 +64,21 @@ function MainTabs() {
         component={CategoriesScreen}
         options={{
           tabBarLabel: "Browse",
-          tabBarIcon: ({ focused }) => <Text style={{ fontSize: 19, opacity: focused ? 1 : 0.65 }}>🧭</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "grid" : "grid-outline"} size={21} color={color} />
+          ),
         }}
       />
       <Tab.Screen
         name="Cart"
         component={CartScreen}
         options={{
-          tabBarLabel: "Bag",
+          tabBarLabel: "Orders",
           tabBarBadge: totalCount > 0 ? totalCount : undefined,
           tabBarBadgeStyle: { backgroundColor: "#FF6B00", color: "#FFFFFF", fontWeight: "800", fontSize: 11 },
-          tabBarIcon: ({ focused }) => <Text style={{ fontSize: 19, opacity: focused ? 1 : 0.65 }}>🛒</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "cube" : "cube-outline"} size={22} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -81,7 +88,9 @@ function MainTabs() {
           tabBarLabel: "Account",
           tabBarBadge: wishlist.length > 0 ? wishlist.length : undefined,
           tabBarBadgeStyle: { backgroundColor: "#111827", color: "#FFFFFF", fontSize: 10 },
-          tabBarIcon: ({ focused }) => <Text style={{ fontSize: 19, opacity: focused ? 1 : 0.65 }}>👤</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "person-circle" : "person-circle-outline"} size={24} color={color} />
+          ),
         }}
       />
     </Tab.Navigator>

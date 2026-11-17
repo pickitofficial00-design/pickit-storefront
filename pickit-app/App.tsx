@@ -1,5 +1,5 @@
 import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
@@ -29,7 +29,7 @@ const PickitTheme = {
   },
 };
 
-function TabIconPill({
+function RetailTabIcon({
   name,
   color,
   focused,
@@ -39,47 +39,44 @@ function TabIconPill({
   focused: boolean;
 }) {
   return (
-    <View style={[styles.iconPill, focused && styles.iconPillActive]}>
+    <View style={styles.tabItemBox}>
+      <View style={[styles.topActiveLine, focused && styles.topActiveLineVisible]} />
       <Ionicons name={name} size={22} color={color} />
     </View>
   );
 }
 
 function MainTabs() {
-  const { orders, wishlist } = useCart();
+  const { orders } = useCart();
   const insets = useSafeAreaInsets();
-  const bottomPad = Math.max(insets.bottom, 8);
+  const bottomPad = Math.max(insets.bottom, 6);
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#FF6B00",
-        tabBarInactiveTintColor: "#64748B",
+        tabBarInactiveTintColor: "#1F2937",
         tabBarIconStyle: {
-          width: 48,
-          height: 32,
-          marginTop: 2,
+          width: 56,
+          height: 28,
+          marginTop: 0,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: "800",
-          marginTop: 2,
+          fontWeight: "700",
+          letterSpacing: 0.1,
+          marginBottom: 2,
         },
         tabBarStyle: {
-          height: 62 + bottomPad,
+          height: 56 + bottomPad,
           paddingBottom: bottomPad,
-          paddingTop: 6,
+          paddingTop: 0,
           backgroundColor: "#FFFFFF",
-          borderTopColor: "#E2E8F0",
+          borderTopColor: "#E5E7EB",
           borderTopWidth: 1,
-          borderTopLeftRadius: 22,
-          borderTopRightRadius: 22,
-          shadowColor: "#0F172A",
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.06,
-          shadowRadius: 12,
-          elevation: 14,
+          elevation: 0,
+          shadowOpacity: 0,
         },
       }}
     >
@@ -87,10 +84,10 @@ function MainTabs() {
         name="Home"
         component={HomeScreen}
         options={{
-          tabBarLabel: "Shop",
+          tabBarLabel: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <TabIconPill
-              name={focused ? "storefront" : "storefront-outline"}
+            <RetailTabIcon
+              name={focused ? "home" : "home-outline"}
               color={color}
               focused={focused}
             />
@@ -101,9 +98,9 @@ function MainTabs() {
         name="Categories"
         component={CategoriesScreen}
         options={{
-          tabBarLabel: "Browse",
+          tabBarLabel: "Categories",
           tabBarIcon: ({ color, focused }) => (
-            <TabIconPill
+            <RetailTabIcon
               name={focused ? "grid" : "grid-outline"}
               color={color}
               focused={focused}
@@ -118,13 +115,14 @@ function MainTabs() {
           tabBarLabel: "Orders",
           tabBarBadge: orders.length > 0 ? orders.length : undefined,
           tabBarBadgeStyle: {
-            backgroundColor: "#059669",
+            backgroundColor: "#FF6B00",
             color: "#FFFFFF",
             fontWeight: "800",
             fontSize: 10,
+            top: 2,
           },
           tabBarIcon: ({ color, focused }) => (
-            <TabIconPill
+            <RetailTabIcon
               name={focused ? "cube" : "cube-outline"}
               color={color}
               focused={focused}
@@ -137,15 +135,9 @@ function MainTabs() {
         component={AccountScreen}
         options={{
           tabBarLabel: "Account",
-          tabBarBadge: wishlist.length > 0 ? wishlist.length : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: "#111827",
-            color: "#FFFFFF",
-            fontSize: 10,
-          },
           tabBarIcon: ({ color, focused }) => (
-            <TabIconPill
-              name={focused ? "person-circle" : "person-circle-outline"}
+            <RetailTabIcon
+              name={focused ? "person" : "person-outline"}
               color={color}
               focused={focused}
             />
@@ -188,14 +180,23 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  iconPill: {
-    width: 46,
-    height: 30,
-    borderRadius: 15,
+  tabItemBox: {
+    width: 56,
+    height: 28,
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
-  iconPillActive: {
-    backgroundColor: "#FFF7ED",
+  topActiveLine: {
+    position: "absolute",
+    top: 0,
+    width: 34,
+    height: 3,
+    borderBottomLeftRadius: 3,
+    borderBottomRightRadius: 3,
+    backgroundColor: "transparent",
+  },
+  topActiveLineVisible: {
+    backgroundColor: "#FF6B00",
   },
 });

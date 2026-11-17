@@ -73,6 +73,26 @@ export default function AccountScreen() {
           </View>
         </View>
 
+        <View style={styles.quickActionRow}>
+          <TouchableOpacity
+            style={styles.quickActionCard}
+            onPress={() => navigation.navigate("Orders")}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="cube-outline" size={20} color="#FF6B00" />
+            <Text style={styles.quickActionText}>Orders</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickActionCard}
+            onPress={() => navigation.navigate("Categories")}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="grid-outline" size={20} color="#FF6B00" />
+            <Text style={styles.quickActionText}>Departments</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Saved Wishlist ({wishlist.length})</Text>
           {wishlist.length === 0 ? (
@@ -194,6 +214,28 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 11.5,
     fontWeight: "700",
+  },
+  quickActionRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 18,
+  },
+  quickActionCard: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingVertical: 13,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#111827",
   },
   section: { marginBottom: 18 },
   sectionTitle: { fontSize: 16, fontWeight: "800", color: "#111827", marginBottom: 10 },

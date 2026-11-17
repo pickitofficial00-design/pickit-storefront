@@ -76,13 +76,14 @@ export default function ProductScreen() {
             </View>
           )}
           <TouchableOpacity
-            style={styles.wishlistBtn}
+            style={[styles.wishlistBtn, saved && styles.wishlistBtnSaved]}
             onPress={() => toggleWishlist(product)}
+            activeOpacity={0.8}
           >
             <Ionicons
               name={saved ? "heart" : "heart-outline"}
-              size={22}
-              color={saved ? "#EF4444" : "#111827"}
+              size={23}
+              color={saved ? "#EF4444" : "#FFFFFF"}
             />
           </TouchableOpacity>
         </View>
@@ -223,16 +224,24 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 14,
     right: 14,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#FFFFFF",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(17, 24, 39, 0.78)",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 6,
+    zIndex: 10,
+  },
+  wishlistBtnSaved: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#FECACA",
   },
   infoCard: {
     backgroundColor: "#FFFFFF",

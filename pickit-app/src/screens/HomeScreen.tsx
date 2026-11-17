@@ -22,30 +22,24 @@ import { useCart } from "../context/CartContext";
 type SortOption = "featured" | "price_asc" | "price_desc" | "rating";
 type PriceFilter = "all" | "under_25" | "25_to_50" | "over_50";
 
-function getCategoryMeta(name: string): {
+interface CollectionItem {
+  id: string;
+  label: string;
   icon: keyof typeof Ionicons.glyphMap;
-  shortLabel: string;
-} {
-  const key = name.toLowerCase();
-  if (key === "all") return { icon: "grid", shortLabel: "All Deals" };
-  if (key.includes("phone") || key.includes("mobile"))
-    return { icon: "phone-portrait", shortLabel: "Mobiles & Gear" };
-  if (key.includes("tech") || key.includes("gadget") || key.includes("electronic"))
-    return { icon: "hardware-chip", shortLabel: "Smart Tech" };
-  if (key.includes("desk") || key.includes("office") || key.includes("setup"))
-    return { icon: "desktop", shortLabel: "Desk Setup" };
-  if (key.includes("game") || key.includes("gaming"))
-    return { icon: "game-controller", shortLabel: "Gaming" };
-  if (key.includes("travel") || key.includes("bag"))
-    return { icon: "airplane", shortLabel: "Travel" };
-  if (key.includes("fitness") || key.includes("outdoor") || key.includes("sport"))
-    return { icon: "fitness", shortLabel: "Fitness" };
-  if (key.includes("home") || key.includes("kitchen"))
-    return { icon: "home", shortLabel: "Home & Living" };
-  if (key.includes("fashion") || key.includes("wear") || key.includes("watch"))
-    return { icon: "watch", shortLabel: "Fashion" };
-  return { icon: "pricetag", shortLabel: name };
+  keywords: string[];
 }
+
+const US_COLLECTIONS: CollectionItem[] = [
+  { id: "All", label: "All Deals", icon: "grid", keywords: [] },
+  { id: "Top Rated", label: "Top Rated", icon: "trophy", keywords: ["top rated", "best", "featured"] },
+  { id: "Mobile & Charging", label: "Mobile & Charging", icon: "phone-portrait", keywords: ["mobile", "phone", "charg", "cable", "magsafe"] },
+  { id: "Everyday Tech", label: "Everyday Tech", icon: "hardware-chip", keywords: ["tech", "electronic", "gadget", "smart", "audio"] },
+  { id: "Work From Home", label: "Work From Home", icon: "desktop", keywords: ["work", "desk", "office", "setup", "laptop"] },
+  { id: "Gaming Setup", label: "Gaming Setup", icon: "game-controller", keywords: ["game", "gaming", "rgb", "controller"] },
+  { id: "Travel Essentials", label: "Travel Essentials", icon: "airplane", keywords: ["travel", "bag", "portable", "trip"] },
+  { id: "Fitness & Wellness", label: "Fitness & Wellness", icon: "fitness", keywords: ["fitness", "wellness", "outdoor", "sport", "health"] },
+  { id: "Home Upgrades", label: "Home Upgrades", icon: "home", keywords: ["home", "kitchen", "living", "lamp"] },
+];
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
@@ -62,13 +56,13 @@ export default function HomeScreen() {
   const [onlyDeals, setOnlyDeals] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
-  // Track which product buttons are showing "Added to Cart" for 4 seconds
+  // Track which product buttons show "Added to Cart" for 4 seconds
   const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
   const buttonTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // In-app floating popup banner state
   const [toastProduct, setToastProduct] = useState<Product | null>(null);
-  const toastAnim = useRef(new Animated.Value(120)).current;
+  const toastAnim = useRef(new Animated.Value(140)).current;
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadProducts = useCallback(async (isRefresh = false) => {
@@ -90,14 +84,6 @@ export default function HomeScreen() {
     loadProducts();
   }, [loadProducts]);
 
-  const categories = useMemo(() => {
-    const set = new Set<string>(["All"]);
-    products.forEach((p) => {
-      if (p.category) set.add(p.category);
-    });
-    return Array.from(set);
-  }, [products]);
-
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (priceFilter !== "all") count++;
@@ -108,7 +94,20 @@ export default function HomeScreen() {
 
   const filteredProducts = useMemo(() => {
     let list = products.filter((p) => {
-      const matchesCat = selectedCategory === "All" || p.category === selectedCategory;
+      let matchesCat = true;
+      if (selectedCategory !== "All") {
+        const col = US_COLLECTIONS.find((c) => c.id === selectedCategory);
+        const catLower = (p.category || "").toLowerCase();
+        const nameLower = (p.name || "").toLowerCase();
+        if (selectedCategory === "Top Rated") {
+          matchesCat = (p.rating || 4.8) >= 4.7 || catLower.includes("top rated");
+        } else if (col) {
+          matchesCat =
+            catLower === col.id.toLowerCase() ||
+            col.keywords.some((kw) => catLower.includes(kw) || nameLower.includes(kw));
+        }
+      }
+
       const q = search.trim().toLowerCase();
       const matchesSearch =
         !q ||
@@ -137,6 +136,7 @@ export default function HomeScreen() {
     setToastProduct(item);
     if (toastTimer.current) clearTimeout(toastTimer.current);
 
+    toastAnim.setValue(140);
     Animated.spring(toastAnim, {
       toValue: 0,
       useNativeDriver: true,
@@ -145,17 +145,17 @@ export default function HomeScreen() {
 
     toastTimer.current = setTimeout(() => {
       Animated.timing(toastAnim, {
-        toValue: 120,
+        toValue: 140,
         duration: 240,
         useNativeDriver: true,
       }).start(() => setToastProduct(null));
-    }, 3500);
+    }, 3600);
   };
 
   const handleQuickAdd = (item: Product) => {
     addToCart(item, 1);
 
-    // Change button text to "Added to Cart" for 4 seconds (4000ms)
+    // Button changes to "Added to Cart" for 4 seconds (4000ms)
     setAddedIds((prev) => ({ ...prev, [item.id]: true }));
     if (buttonTimers.current[item.id]) {
       clearTimeout(buttonTimers.current[item.id]);
@@ -168,7 +168,7 @@ export default function HomeScreen() {
       });
     }, 4000);
 
-    // Show in-app popup banner
+    // Show floating in-app popup
     showCartPopup(item);
   };
 
@@ -177,39 +177,39 @@ export default function HomeScreen() {
     setOnlyDeals(false);
     setSortBy("featured");
     setSelectedCategory("All");
+    setSearch("");
   };
 
   const renderHeader = () => (
     <View>
-      {/* Flipkart / Amazon style Visual Category Icon Strip */}
+      {/* Flipkart / Amazon style Visual US Collection Icon Strip */}
       <View style={styles.catSection}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.catRow}
         >
-          {categories.map((cat) => {
-            const active = selectedCategory === cat;
-            const meta = getCategoryMeta(cat);
+          {US_COLLECTIONS.map((col) => {
+            const active = selectedCategory === col.id;
             return (
               <TouchableOpacity
-                key={cat}
-                onPress={() => setSelectedCategory(cat)}
+                key={col.id}
+                onPress={() => setSelectedCategory(col.id)}
                 style={styles.catTile}
                 activeOpacity={0.8}
               >
                 <View style={[styles.catIconCircle, active && styles.catIconCircleActive]}>
                   <Ionicons
-                    name={meta.icon}
+                    name={col.icon}
                     size={21}
                     color={active ? "#FFFFFF" : "#111827"}
                   />
                 </View>
                 <Text
                   style={[styles.catLabel, active && styles.catLabelActive]}
-                  numberOfLines={1}
+                  numberOfLines={2}
                 >
-                  {meta.shortLabel}
+                  {col.label}
                 </Text>
                 <View style={[styles.catIndicator, active && styles.catIndicatorActive]} />
               </TouchableOpacity>
@@ -226,7 +226,7 @@ export default function HomeScreen() {
         </View>
         <Text style={styles.heroTitle}>Smart Picks. Everyday Value.</Text>
         <Text style={styles.heroSubtitle}>
-          Quality-checked essentials backed by 30-Day Buyer Protection & fast tracked delivery.
+          Quality-checked essentials backed by 30-Day Buyer Protection & fast tracked US delivery.
         </Text>
         <View style={styles.heroStatsRow}>
           <View style={styles.heroStat}>
@@ -301,7 +301,7 @@ export default function HomeScreen() {
                 activeFilterCount > 0 && styles.filterMainBtnTextActive,
               ]}
             >
-              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              Filter & Sort{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
             </Text>
           </TouchableOpacity>
         </View>
@@ -513,7 +513,7 @@ export default function HomeScreen() {
           ListEmptyComponent={
             <View style={styles.emptyBox}>
               <Text style={styles.emptyTitle}>No matching products</Text>
-              <Text style={styles.emptySub}>Try clearing your filters or search query.</Text>
+              <Text style={styles.emptySub}>Try clearing your filters or choosing another collection.</Text>
               <TouchableOpacity style={styles.resetEmptyBtn} onPress={resetFilters}>
                 <Text style={styles.resetEmptyText}>Reset All Filters</Text>
               </TouchableOpacity>
@@ -749,18 +749,18 @@ const styles = StyleSheet.create({
   catSection: {
     backgroundColor: "#FFFFFF",
     paddingTop: 12,
-    paddingBottom: 4,
+    paddingBottom: 6,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
   catRow: {
     paddingHorizontal: 12,
-    gap: 6,
+    gap: 8,
   },
   catTile: {
     alignItems: "center",
-    width: 78,
-    paddingHorizontal: 4,
+    width: 82,
+    paddingHorizontal: 2,
   },
   catIconCircle: {
     width: 48,
@@ -782,6 +782,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#374151",
     textAlign: "center",
+    lineHeight: 14,
+    minHeight: 28,
   },
   catLabelActive: {
     color: "#FF6B00",
@@ -792,7 +794,7 @@ const styles = StyleSheet.create({
     width: 28,
     borderRadius: 2,
     backgroundColor: "transparent",
-    marginTop: 6,
+    marginTop: 4,
   },
   catIndicatorActive: {
     backgroundColor: "#FF6B00",
@@ -911,7 +913,7 @@ const styles = StyleSheet.create({
   sortChipText: { fontSize: 12, color: "#4B5563", fontWeight: "600" },
   sortChipTextActive: { color: "#FF6B00", fontWeight: "800" },
 
-  listContent: { paddingBottom: 80 },
+  listContent: { paddingBottom: 90 },
   gridRow: { paddingHorizontal: 12, justifyContent: "space-between", marginBottom: 10 },
   card: {
     width: "48.5%",

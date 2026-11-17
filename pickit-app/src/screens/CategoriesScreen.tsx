@@ -13,18 +13,25 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { fetchProducts, Product } from "../services/storeApi";
 
-function getCategoryIcon(name: string): keyof typeof Ionicons.glyphMap {
-  const key = name.toLowerCase();
-  if (key.includes("phone") || key.includes("mobile")) return "phone-portrait-outline";
-  if (key.includes("tech") || key.includes("gadget") || key.includes("electronic")) return "hardware-chip-outline";
-  if (key.includes("desk") || key.includes("office") || key.includes("setup")) return "desktop-outline";
-  if (key.includes("game") || key.includes("gaming")) return "game-controller-outline";
-  if (key.includes("travel") || key.includes("bag")) return "airplane-outline";
-  if (key.includes("fitness") || key.includes("outdoor") || key.includes("sport")) return "fitness-outline";
-  if (key.includes("home") || key.includes("kitchen")) return "home-outline";
-  if (key.includes("fashion") || key.includes("wear") || key.includes("watch")) return "watch-outline";
-  return "layers-outline";
+interface CollectionCardMeta {
+  id: string;
+  label: string;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  keywords: string[];
 }
+
+const US_DEPARTMENTS: CollectionCardMeta[] = [
+  { id: "All", label: "All Deals", subtitle: "Full Verified Catalog", icon: "grid-outline", keywords: [] },
+  { id: "Top Rated", label: "Top Rated", subtitle: "4.8★+ Customer Favorites", icon: "trophy-outline", keywords: ["top rated", "best", "featured"] },
+  { id: "Mobile & Charging", label: "Mobile & Charging", subtitle: "Cases, MagSafe & Power", icon: "phone-portrait-outline", keywords: ["mobile", "phone", "charg", "cable", "magsafe"] },
+  { id: "Everyday Tech", label: "Everyday Tech", subtitle: "Smart Audio & Gadgets", icon: "hardware-chip-outline", keywords: ["tech", "electronic", "gadget", "smart", "audio"] },
+  { id: "Work From Home", label: "Work From Home", subtitle: "Desk & Office Essentials", icon: "desktop-outline", keywords: ["work", "desk", "office", "setup", "laptop"] },
+  { id: "Gaming Setup", label: "Gaming Setup", subtitle: "Controllers, RGB & Gear", icon: "game-controller-outline", keywords: ["game", "gaming", "rgb", "controller"] },
+  { id: "Travel Essentials", label: "Travel Essentials", subtitle: "Organizers & Portable Gear", icon: "airplane-outline", keywords: ["travel", "bag", "portable", "trip"] },
+  { id: "Fitness & Wellness", label: "Fitness & Wellness", subtitle: "Active & Recovery Gear", icon: "fitness-outline", keywords: ["fitness", "wellness", "outdoor", "sport", "health"] },
+  { id: "Home Upgrades", label: "Home Upgrades", subtitle: "Kitchen & Smart Living", icon: "home-outline", keywords: ["home", "kitchen", "living", "lamp"] },
+];
 
 export default function CategoriesScreen() {
   const navigation = useNavigation<any>();
@@ -39,31 +46,29 @@ export default function CategoriesScreen() {
       .finally(() => setLoading(false));
   }, []);
 
-  const groups = useMemo(() => {
-    const map = new Map<string, Product[]>();
-    products.forEach((p) => {
-      const cat = p.category || "General";
-      map.set(cat, [...(map.get(cat) || []), p]);
-    });
-    return Array.from(map.entries()).map(([name, items]) => ({
-      name,
-      count: items.length,
-    }));
-  }, [products]);
+  const matchProductToDept = (p: Product, dept: CollectionCardMeta) => {
+    if (dept.id === "All") return true;
+    const catLower = (p.category || "").toLowerCase();
+    const nameLower = (p.name || "").toLowerCase();
+    if (dept.id === "Top Rated") {
+      return (p.rating || 4.8) >= 4.7 || catLower.includes("top rated");
+    }
+    return (
+      catLower === dept.id.toLowerCase() ||
+      dept.keywords.some((kw) => catLower.includes(kw) || nameLower.includes(kw))
+    );
+  };
 
-  const visibleProducts = useMemo(
-    () =>
-      selected === "All"
-        ? products
-        : products.filter((p) => (p.category || "General") === selected),
-    [products, selected]
-  );
+  const visibleProducts = useMemo(() => {
+    const dept = US_DEPARTMENTS.find((d) => d.id === selected) || US_DEPARTMENTS[0];
+    return products.filter((p) => matchProductToDept(p, dept));
+  }, [products, selected]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Browse Collections</Text>
-        <Text style={styles.headerSub}>Curated categories backed by PICKIT Buyer Protection</Text>
+        <Text style={styles.headerTitle}>Browse Departments</Text>
+        <Text style={styles.headerSub}>PICKIT Assured • Free Tracked US Shipping $35+</Text>
       </View>
 
       {loading ? (
@@ -78,36 +83,18 @@ export default function CategoriesScreen() {
           ListHeaderComponent={
             <View style={{ marginBottom: 14 }}>
               <View style={styles.catGrid}>
-                <TouchableOpacity
-                  style={[styles.catCard, selected === "All" && styles.catCardActive]}
-                  onPress={() => setSelected("All")}
-                >
-                  <View style={[styles.iconBadge, selected === "All" && styles.iconBadgeActive]}>
-                    <Ionicons
-                      name={selected === "All" ? "sparkles" : "sparkles-outline"}
-                      size={20}
-                      color={selected === "All" ? "#FFFFFF" : "#FF6B00"}
-                    />
-                  </View>
-                  <Text style={[styles.catName, selected === "All" && { color: "#FFFFFF" }]}>
-                    All Picks
-                  </Text>
-                  <Text style={[styles.catCount, selected === "All" && { color: "#D1D5DB" }]}>
-                    {products.length} items
-                  </Text>
-                </TouchableOpacity>
-
-                {groups.map((g) => {
-                  const active = selected === g.name;
+                {US_DEPARTMENTS.map((dept) => {
+                  const active = selected === dept.id;
+                  const count = products.filter((p) => matchProductToDept(p, dept)).length;
                   return (
                     <TouchableOpacity
-                      key={g.name}
+                      key={dept.id}
                       style={[styles.catCard, active && styles.catCardActive]}
-                      onPress={() => setSelected(g.name)}
+                      onPress={() => setSelected(dept.id)}
                     >
                       <View style={[styles.iconBadge, active && styles.iconBadgeActive]}>
                         <Ionicons
-                          name={getCategoryIcon(g.name)}
+                          name={dept.icon}
                           size={20}
                           color={active ? "#FFFFFF" : "#FF6B00"}
                         />
@@ -116,17 +103,23 @@ export default function CategoriesScreen() {
                         style={[styles.catName, active && { color: "#FFFFFF" }]}
                         numberOfLines={1}
                       >
-                        {g.name}
+                        {dept.label}
                       </Text>
-                      <Text style={[styles.catCount, active && { color: "#D1D5DB" }]}>
-                        {g.count} {g.count === 1 ? "item" : "items"}
+                      <Text
+                        style={[styles.catSub, active && { color: "#D1D5DB" }]}
+                        numberOfLines={1}
+                      >
+                        {dept.subtitle}
+                      </Text>
+                      <Text style={[styles.catCount, active && { color: "#FF8A34" }]}>
+                        {count} {count === 1 ? "item" : "items"}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
               <Text style={styles.sectionTitle}>
-                {selected === "All" ? "All Verified Items" : selected}
+                {selected === "All" ? "All Verified Items" : selected} ({visibleProducts.length})
               </Text>
             </View>
           }
@@ -140,7 +133,10 @@ export default function CategoriesScreen() {
                 style={styles.thumb}
               />
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.brand}>{item.brand || "PICKIT VERIFIED"}</Text>
+                <View style={styles.rowBrandLine}>
+                  <Text style={styles.brand}>{item.brand || "PICKIT"}</Text>
+                  <Ionicons name="checkmark-circle" size={12} color="#FF6B00" />
+                </View>
                 <Text style={styles.name} numberOfLines={2}>
                   {item.name}
                 </Text>
@@ -172,7 +168,7 @@ const styles = StyleSheet.create({
     width: "48.5%",
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
-    padding: 14,
+    padding: 13,
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
@@ -184,13 +180,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF7ED",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   iconBadgeActive: {
     backgroundColor: "#FF6B00",
   },
-  catName: { fontSize: 14, fontWeight: "800", color: "#111827" },
-  catCount: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+  catName: { fontSize: 13.5, fontWeight: "800", color: "#111827" },
+  catSub: { fontSize: 11, color: "#6B7280", marginTop: 2 },
+  catCount: { fontSize: 11, fontWeight: "800", color: "#FF6B00", marginTop: 6 },
   sectionTitle: { fontSize: 16, fontWeight: "800", color: "#111827" },
   rowCard: {
     flexDirection: "row",
@@ -203,6 +200,7 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   thumb: { width: 68, height: 68, borderRadius: 10, backgroundColor: "#F3F4F6" },
+  rowBrandLine: { flexDirection: "row", alignItems: "center", gap: 4 },
   brand: { fontSize: 10, fontWeight: "800", color: "#FF6B00", textTransform: "uppercase" },
   name: { fontSize: 14, fontWeight: "700", color: "#111827", marginVertical: 3 },
   price: { fontSize: 15, fontWeight: "900", color: "#111827" },

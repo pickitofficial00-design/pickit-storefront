@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { fetchProducts, Product } from "../services/storeApi";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 
 interface CollectionCardMeta {
   id: string;

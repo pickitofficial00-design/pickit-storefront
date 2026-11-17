@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { fetchProducts, Product } from "../services/storeApi";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 
 type SortOption = "featured" | "price_asc" | "price_desc" | "rating";
 type PriceFilter = "all" | "under_25" | "25_to_50" | "over_50";
@@ -494,7 +495,7 @@ export default function HomeScreen() {
 
             <TouchableOpacity
               style={styles.headerBagBtn}
-              onPress={() => navigation.navigate("Cart")}
+              onPress={() => requireAuth(() => navigation.navigate("Cart"))}
             >
               <Ionicons name="cart-outline" size={20} color="#FFFFFF" />
               <Text style={styles.headerCartLabel}>Cart</Text>

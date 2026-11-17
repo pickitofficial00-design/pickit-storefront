@@ -327,7 +327,7 @@ function AuthSheetModal(props: {
   isActionPrompt?: boolean;
 }) {
   return (
-    <Modal visible={props.visible} animationType="slide" onRequestClose={props.onClose}>
+    <Modal visible={props.visible} animationType="slide" statusBarTranslucent onRequestClose={props.onClose}>
       <SafeAreaView style={styles.modalSafe} edges={["top", "bottom"]}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}

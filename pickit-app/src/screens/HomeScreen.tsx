@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Image,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -18,6 +20,7 @@ import { fetchProducts, Product } from "../services/storeApi";
 import { useCart } from "../context/CartContext";
 
 type SortOption = "featured" | "price_asc" | "price_desc" | "rating";
+type PriceFilter = "all" | "under_25" | "25_to_50" | "over_50";
 
 function getCategoryMeta(name: string): {
   icon: keyof typeof Ionicons.glyphMap;
@@ -55,7 +58,18 @@ export default function HomeScreen() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState<SortOption>("featured");
-  const [addedId, setAddedId] = useState<string | null>(null);
+  const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
+  const [onlyDeals, setOnlyDeals] = useState(false);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+
+  // Track which product buttons are showing "Added to Cart" for 4 seconds
+  const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
+  const buttonTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // In-app floating popup banner state
+  const [toastProduct, setToastProduct] = useState<Product | null>(null);
+  const toastAnim = useRef(new Animated.Value(120)).current;
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadProducts = useCallback(async (isRefresh = false) => {
     try {
@@ -84,6 +98,14 @@ export default function HomeScreen() {
     return Array.from(set);
   }, [products]);
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (priceFilter !== "all") count++;
+    if (onlyDeals) count++;
+    if (sortBy !== "featured") count++;
+    return count;
+  }, [priceFilter, onlyDeals, sortBy]);
+
   const filteredProducts = useMemo(() => {
     let list = products.filter((p) => {
       const matchesCat = selectedCategory === "All" || p.category === selectedCategory;
@@ -93,19 +115,68 @@ export default function HomeScreen() {
         p.name.toLowerCase().includes(q) ||
         (p.brand && p.brand.toLowerCase().includes(q)) ||
         (p.category && p.category.toLowerCase().includes(q));
-      return matchesCat && matchesSearch;
+
+      const matchesPrice =
+        priceFilter === "all" ||
+        (priceFilter === "under_25" && p.price < 25) ||
+        (priceFilter === "25_to_50" && p.price >= 25 && p.price <= 50) ||
+        (priceFilter === "over_50" && p.price > 50);
+
+      const matchesDeal = !onlyDeals || (p.discount && p.discount > 0);
+
+      return matchesCat && matchesSearch && matchesPrice && matchesDeal;
     });
 
     if (sortBy === "price_asc") list = [...list].sort((a, b) => a.price - b.price);
     if (sortBy === "price_desc") list = [...list].sort((a, b) => b.price - a.price);
     if (sortBy === "rating") list = [...list].sort((a, b) => (b.rating || 4.8) - (a.rating || 4.8));
     return list;
-  }, [products, selectedCategory, search, sortBy]);
+  }, [products, selectedCategory, search, priceFilter, onlyDeals, sortBy]);
+
+  const showCartPopup = (item: Product) => {
+    setToastProduct(item);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+
+    Animated.spring(toastAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      friction: 8,
+    }).start();
+
+    toastTimer.current = setTimeout(() => {
+      Animated.timing(toastAnim, {
+        toValue: 120,
+        duration: 240,
+        useNativeDriver: true,
+      }).start(() => setToastProduct(null));
+    }, 3500);
+  };
 
   const handleQuickAdd = (item: Product) => {
     addToCart(item, 1);
-    setAddedId(item.id);
-    setTimeout(() => setAddedId((prev) => (prev === item.id ? null : prev)), 1100);
+
+    // Change button text to "Added to Cart" for 4 seconds (4000ms)
+    setAddedIds((prev) => ({ ...prev, [item.id]: true }));
+    if (buttonTimers.current[item.id]) {
+      clearTimeout(buttonTimers.current[item.id]);
+    }
+    buttonTimers.current[item.id] = setTimeout(() => {
+      setAddedIds((prev) => {
+        const next = { ...prev };
+        delete next[item.id];
+        return next;
+      });
+    }, 4000);
+
+    // Show in-app popup banner
+    showCartPopup(item);
+  };
+
+  const resetFilters = () => {
+    setPriceFilter("all");
+    setOnlyDeals(false);
+    setSortBy("featured");
+    setSelectedCategory("All");
   };
 
   const renderHeader = () => (
@@ -175,7 +246,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Amazon / Flipkart Reliability & Guarantees Bar */}
+      {/* 4-Column Store Reliability Strip */}
       <View style={styles.trustGrid}>
         <View style={styles.trustItem}>
           <View style={styles.trustIconBox}>
@@ -207,19 +278,55 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Section Title & Sort Chips */}
+      {/* Prominent Filter & Sort Action Bar */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          {selectedCategory === "All" ? "Top Picks For You" : selectedCategory}{" "}
-          <Text style={styles.countText}>({filteredProducts.length})</Text>
-        </Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>
+            {selectedCategory === "All" ? "Top Picks For You" : selectedCategory}{" "}
+            <Text style={styles.countText}>({filteredProducts.length})</Text>
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.filterMainBtn, activeFilterCount > 0 && styles.filterMainBtnActive]}
+            onPress={() => setFilterModalVisible(true)}
+          >
+            <Ionicons
+              name="options-outline"
+              size={15}
+              color={activeFilterCount > 0 ? "#FFFFFF" : "#111827"}
+            />
+            <Text
+              style={[
+                styles.filterMainBtnText,
+                activeFilterCount > 0 && styles.filterMainBtnTextActive,
+              ]}
+            >
+              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity
+            onPress={() => setOnlyDeals((prev) => !prev)}
+            style={[styles.sortChip, onlyDeals && styles.sortChipActive]}
+          >
+            <Ionicons
+              name="pricetag-outline"
+              size={12}
+              color={onlyDeals ? "#FF6B00" : "#4B5563"}
+            />
+            <Text style={[styles.sortChipText, onlyDeals && styles.sortChipTextActive]}>
+              On Sale
+            </Text>
+          </TouchableOpacity>
+
           {(
             [
               { id: "featured", label: "Featured" },
-              { id: "price_asc", label: "Price: Low to High" },
-              { id: "price_desc", label: "Price: High to Low" },
-              { id: "rating", label: "Customer Top Rated" },
+              { id: "price_asc", label: "Price: Low → High" },
+              { id: "price_desc", label: "Price: High → Low" },
+              { id: "rating", label: "Top Rated" },
             ] as { id: SortOption; label: string }[]
           ).map((s) => (
             <TouchableOpacity
@@ -239,7 +346,7 @@ export default function HomeScreen() {
 
   const renderProduct = ({ item }: { item: Product }) => {
     const saved = isWishlisted(item.id);
-    const justAdded = addedId === item.id;
+    const isAdded = !!addedIds[item.id];
     const rating = item.rating && item.rating > 0 ? item.rating.toFixed(1) : "4.8";
 
     return (
@@ -287,7 +394,6 @@ export default function HomeScreen() {
             {item.name}
           </Text>
 
-          {/* Flipkart-style green rating badge + Free Delivery tag */}
           <View style={styles.ratingRow}>
             <View style={styles.greenRatingBadge}>
               <Text style={styles.greenRatingText}>{rating} ★</Text>
@@ -298,10 +404,18 @@ export default function HomeScreen() {
           <View style={styles.priceRow}>
             <Text style={styles.priceText}>${item.price.toFixed(2)}</Text>
             <TouchableOpacity
-              style={[styles.addBtn, justAdded && styles.addBtnSuccess]}
+              style={[styles.addBtn, isAdded && styles.addBtnSuccess]}
               onPress={() => handleQuickAdd(item)}
+              activeOpacity={0.85}
             >
-              <Text style={styles.addBtnText}>{justAdded ? "✓ Added" : "+ Add"}</Text>
+              <Ionicons
+                name={isAdded ? "checkmark-circle" : "cart-outline"}
+                size={13}
+                color="#FFFFFF"
+              />
+              <Text style={styles.addBtnText}>
+                {isAdded ? "Added to Cart" : "Add"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -318,18 +432,36 @@ export default function HomeScreen() {
             <Text style={styles.wordmarkIt}>IT.</Text>
           </Text>
 
-          <TouchableOpacity
-            style={styles.headerBagBtn}
-            onPress={() => navigation.navigate("Cart")}
-          >
-            <Ionicons name="cart-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.headerCartLabel}>Cart</Text>
-            {totalCount > 0 && (
-              <View style={styles.headerBadge}>
-                <Text style={styles.headerBadgeText}>{totalCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={[styles.headerFilterBtn, activeFilterCount > 0 && styles.headerFilterBtnActive]}
+              onPress={() => setFilterModalVisible(true)}
+            >
+              <Ionicons
+                name="options-outline"
+                size={18}
+                color={activeFilterCount > 0 ? "#FFFFFF" : "#111827"}
+              />
+              {activeFilterCount > 0 && (
+                <View style={styles.filterDot}>
+                  <Text style={styles.filterDotText}>{activeFilterCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.headerBagBtn}
+              onPress={() => navigation.navigate("Cart")}
+            >
+              <Ionicons name="cart-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.headerCartLabel}>Cart</Text>
+              {totalCount > 0 && (
+                <View style={styles.headerBadge}>
+                  <Text style={styles.headerBadgeText}>{totalCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.searchBar}>
@@ -381,11 +513,146 @@ export default function HomeScreen() {
           ListEmptyComponent={
             <View style={styles.emptyBox}>
               <Text style={styles.emptyTitle}>No matching products</Text>
-              <Text style={styles.emptySub}>Try clearing your search or choosing another category.</Text>
+              <Text style={styles.emptySub}>Try clearing your filters or search query.</Text>
+              <TouchableOpacity style={styles.resetEmptyBtn} onPress={resetFilters}>
+                <Text style={styles.resetEmptyText}>Reset All Filters</Text>
+              </TouchableOpacity>
             </View>
           }
         />
       )}
+
+      {/* In-App Floating "Added to Cart" Popup Banner */}
+      {toastProduct && (
+        <Animated.View
+          style={[
+            styles.toastContainer,
+            { transform: [{ translateY: toastAnim }] },
+          ]}
+        >
+          <View style={styles.toastLeft}>
+            <View style={styles.toastCheckIcon}>
+              <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.toastTitle}>Added to Cart</Text>
+              <Text style={styles.toastSub} numberOfLines={1}>
+                {toastProduct.name} • ${toastProduct.price.toFixed(2)}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.toastCartBtn}
+            onPress={() => {
+              setToastProduct(null);
+              navigation.navigate("Cart");
+            }}
+          >
+            <Text style={styles.toastCartBtnText}>View Cart</Text>
+            <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
+      {/* Filter & Sort Bottom Sheet Modal */}
+      <Modal
+        visible={filterModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setFilterModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.filterSheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Filter & Sort Products</Text>
+              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                <Ionicons name="close-circle" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.sheetLabel}>Sort By</Text>
+            <View style={styles.sheetChipWrap}>
+              {(
+                [
+                  { id: "featured", label: "Featured" },
+                  { id: "price_asc", label: "Price: Low to High" },
+                  { id: "price_desc", label: "Price: High to Low" },
+                  { id: "rating", label: "Top Rated" },
+                ] as { id: SortOption; label: string }[]
+              ).map((s) => (
+                <TouchableOpacity
+                  key={s.id}
+                  onPress={() => setSortBy(s.id)}
+                  style={[styles.sheetChip, sortBy === s.id && styles.sheetChipActive]}
+                >
+                  <Text
+                    style={[
+                      styles.sheetChipText,
+                      sortBy === s.id && styles.sheetChipTextActive,
+                    ]}
+                  >
+                    {s.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.sheetLabel}>Price Range</Text>
+            <View style={styles.sheetChipWrap}>
+              {(
+                [
+                  { id: "all", label: "All Prices" },
+                  { id: "under_25", label: "Under $25" },
+                  { id: "25_to_50", label: "$25 – $50" },
+                  { id: "over_50", label: "$50+" },
+                ] as { id: PriceFilter; label: string }[]
+              ).map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  onPress={() => setPriceFilter(p.id)}
+                  style={[styles.sheetChip, priceFilter === p.id && styles.sheetChipActive]}
+                >
+                  <Text
+                    style={[
+                      styles.sheetChipText,
+                      priceFilter === p.id && styles.sheetChipTextActive,
+                    ]}
+                  >
+                    {p.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.sheetLabel}>Special Offers</Text>
+            <TouchableOpacity
+              style={[styles.dealToggleRow, onlyDeals && styles.dealToggleRowActive]}
+              onPress={() => setOnlyDeals((prev) => !prev)}
+            >
+              <Ionicons
+                name={onlyDeals ? "checkbox" : "square-outline"}
+                size={20}
+                color={onlyDeals ? "#FF6B00" : "#6B7280"}
+              />
+              <Text style={styles.dealToggleText}>Show Discounted Deals Only</Text>
+            </TouchableOpacity>
+
+            <View style={styles.sheetFooter}>
+              <TouchableOpacity style={styles.clearBtn} onPress={resetFilters}>
+                <Text style={styles.clearBtnText}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.applyBtn}
+                onPress={() => setFilterModalVisible(false)}
+              >
+                <Text style={styles.applyBtnText}>
+                  Show {filteredProducts.length} Results
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -413,6 +680,37 @@ const styles = StyleSheet.create({
   },
   wordmarkPick: { color: "#111827" },
   wordmarkIt: { color: "#FF6B00" },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerFilterBtn: {
+    backgroundColor: "#F3F4F6",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  headerFilterBtnActive: {
+    backgroundColor: "#FF6B00",
+  },
+  filterDot: {
+    position: "absolute",
+    top: -3,
+    right: -3,
+    backgroundColor: "#111827",
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  filterDotText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "800",
+  },
   headerBagBtn: {
     backgroundColor: "#111827",
     paddingHorizontal: 13,
@@ -551,10 +849,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
-  trustItem: {
-    flex: 1,
-    alignItems: "center",
-  },
+  trustItem: { flex: 1, alignItems: "center" },
   trustIconBox: {
     width: 32,
     height: 32,
@@ -564,33 +859,59 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 4,
   },
-  trustItemTitle: {
-    fontSize: 10.5,
+  trustItemTitle: { fontSize: 10.5, fontWeight: "800", color: "#111827" },
+  trustItemSub: { fontSize: 9.5, color: "#6B7280", marginTop: 1 },
+
+  /* Section Header & Filter Bar */
+  sectionHeader: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  sectionTitle: { fontSize: 16.5, fontWeight: "900", color: "#111827" },
+  countText: { color: "#6B7280", fontWeight: "600", fontSize: 13.5 },
+  filterMainBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  filterMainBtnActive: {
+    backgroundColor: "#FF6B00",
+    borderColor: "#FF6B00",
+  },
+  filterMainBtnText: {
+    fontSize: 12,
     fontWeight: "800",
     color: "#111827",
   },
-  trustItemSub: {
-    fontSize: 9.5,
-    color: "#6B7280",
-    marginTop: 1,
+  filterMainBtnTextActive: {
+    color: "#FFFFFF",
   },
-
-  sectionHeader: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
-  sectionTitle: { fontSize: 16.5, fontWeight: "900", color: "#111827", marginBottom: 8 },
-  countText: { color: "#6B7280", fontWeight: "600", fontSize: 13.5 },
   sortChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E5E7EB",
     paddingHorizontal: 11,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 8,
     marginRight: 8,
   },
   sortChipActive: { borderColor: "#FF6B00", backgroundColor: "#FFF7ED" },
   sortChipText: { fontSize: 12, color: "#4B5563", fontWeight: "600" },
   sortChipTextActive: { color: "#FF6B00", fontWeight: "800" },
-  listContent: { paddingBottom: 24 },
+
+  listContent: { paddingBottom: 80 },
   gridRow: { paddingHorizontal: 12, justifyContent: "space-between", marginBottom: 10 },
   card: {
     width: "48.5%",
@@ -655,16 +976,157 @@ const styles = StyleSheet.create({
   },
   greenRatingText: { color: "#FFFFFF", fontSize: 10.5, fontWeight: "800" },
   deliveryTag: { fontSize: 11, color: "#374151", fontWeight: "700" },
-  priceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  priceText: { fontSize: 16, fontWeight: "900", color: "#111827" },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 4,
+  },
+  priceText: { fontSize: 15, fontWeight: "900", color: "#111827" },
   addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     backgroundColor: "#111827",
-    paddingHorizontal: 11,
+    paddingHorizontal: 9,
     paddingVertical: 6,
     borderRadius: 8,
   },
   addBtnSuccess: { backgroundColor: "#059669" },
-  addBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
+  addBtnText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
+
+  /* In-App Floating Cart Popup Banner */
+  toastContainer: {
+    position: "absolute",
+    bottom: 14,
+    left: 14,
+    right: 14,
+    backgroundColor: "#111827",
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+  toastLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 10,
+    gap: 10,
+  },
+  toastCheckIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#059669",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toastTitle: { color: "#FFFFFF", fontSize: 13, fontWeight: "800" },
+  toastSub: { color: "#D1D5DB", fontSize: 11.5, marginTop: 1 },
+  toastCartBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FF6B00",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 9,
+  },
+  toastCartBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
+
+  /* Filter Modal */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(17,24,39,0.55)",
+    justifyContent: "flex-end",
+  },
+  filterSheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    padding: 20,
+    paddingBottom: 28,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 14,
+  },
+  sheetTitle: { fontSize: 18, fontWeight: "900", color: "#111827" },
+  sheetLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#374151",
+    marginTop: 10,
+    marginBottom: 8,
+  },
+  sheetChipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  sheetChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
+  },
+  sheetChipActive: {
+    borderColor: "#FF6B00",
+    backgroundColor: "#FFF7ED",
+  },
+  sheetChipText: { fontSize: 12.5, fontWeight: "700", color: "#374151" },
+  sheetChipTextActive: { color: "#FF6B00", fontWeight: "800" },
+  dealToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
+  },
+  dealToggleRowActive: {
+    borderColor: "#FF6B00",
+    backgroundColor: "#FFF7ED",
+  },
+  dealToggleText: { fontSize: 13.5, fontWeight: "700", color: "#111827" },
+  sheetFooter: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 20,
+  },
+  clearBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    alignItems: "center",
+  },
+  clearBtnText: { fontSize: 14, fontWeight: "800", color: "#374151" },
+  applyBtn: {
+    flex: 2,
+    paddingVertical: 13,
+    borderRadius: 12,
+    backgroundColor: "#FF6B00",
+    alignItems: "center",
+  },
+  applyBtnText: { fontSize: 14, fontWeight: "800", color: "#FFFFFF" },
+
   centerBox: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
   loadingText: { marginTop: 12, color: "#4B5563", fontSize: 14, fontWeight: "600" },
   errorTitle: { fontSize: 18, fontWeight: "800", color: "#111827", marginBottom: 6 },
@@ -673,5 +1135,12 @@ const styles = StyleSheet.create({
   retryText: { color: "#FFFFFF", fontWeight: "800" },
   emptyBox: { padding: 36, alignItems: "center" },
   emptyTitle: { fontSize: 16, fontWeight: "800", color: "#111827", marginBottom: 4 },
-  emptySub: { fontSize: 13, color: "#6B7280", textAlign: "center" },
+  emptySub: { fontSize: 13, color: "#6B7280", textAlign: "center", marginBottom: 12 },
+  resetEmptyBtn: {
+    backgroundColor: "#111827",
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 8,
+  },
+  resetEmptyText: { color: "#FFFFFF", fontSize: 12.5, fontWeight: "800" },
 });

@@ -19,13 +19,13 @@ const PRODUCT_QUERY = gql(`
         url
         altText
       }
-      images(first: 10) {
+      images(first: 20) {
         nodes {
           url
           altText
         }
       }
-      variants(first: 25) {
+      variants(first: 50) {
         nodes {
           id
           title

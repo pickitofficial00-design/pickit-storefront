@@ -103,3 +103,13 @@ export async function createCheckoutUrl(
   const data = await res.json();
   return data.checkoutUrl;
 }
+
+export async function fetchProductByHandle(handle: string): Promise<Product | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/product?handle=${encodeURIComponent(handle)}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}

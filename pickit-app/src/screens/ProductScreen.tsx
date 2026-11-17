@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { Product, ProductVariant } from "../services/storeApi";
+import { fetchProductByHandle, Product, ProductVariant } from "../services/storeApi";
 import { useCart } from "../context/CartContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -21,7 +21,20 @@ const sessionAddedProducts = new Set<string>();
 export default function ProductScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const product: Product = route.params?.product;
+  const initialProduct: Product = route.params?.product;
+  const [product, setProduct] = useState<Product>(initialProduct);
+
+  useEffect(() => {
+    if (!initialProduct?.handle) return;
+    fetchProductByHandle(initialProduct.handle).then((fresh) => {
+      if (fresh && fresh.id) {
+        setProduct((prev) => ({ ...prev, ...fresh }));
+        if (fresh.variants && fresh.variants.length > 0) {
+          setSelectedVariant(fresh.variants[0]);
+        }
+      }
+    });
+  }, [initialProduct?.handle]);
 
   const { items, addToCart, removeFromCart, toggleWishlist, isWishlisted } = useCart();
 

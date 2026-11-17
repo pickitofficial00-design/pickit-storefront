@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { fetchProductByHandle, Product, ProductVariant } from "../services/storeApi";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const sessionAddedProducts = new Set<string>();
@@ -91,6 +92,7 @@ export default function ProductScreen() {
   const [product, setProduct] = useState<Product>(initialProduct);
 
   const { items, addToCart, removeFromCart, toggleWishlist, isWishlisted } = useCart();
+  const { requireAuth } = useAuth();
 
   const variants: ProductVariant[] = useMemo(() => {
     if (product?.variants && product.variants.length > 0) return product.variants;
@@ -233,13 +235,15 @@ export default function ProductScreen() {
   };
 
   const handleBuyNow = () => {
-    const key = `${product.id}_${activeVariantId}`;
-    if (!isAddedSession) {
-      sessionAddedProducts.add(key);
-      addToCart(buildVariantProduct(), qty);
-      setIsAddedSession(true);
-    }
-    navigation.navigate("Cart");
+    requireAuth(() => {
+      const key = `${product.id}_${activeVariantId}`;
+      if (!isAddedSession) {
+        sessionAddedProducts.add(key);
+        addToCart(buildVariantProduct(), qty);
+        setIsAddedSession(true);
+      }
+      navigation.navigate("Cart");
+    });
   };
 
   const baseSpecs: { label: string; value: string }[] = [

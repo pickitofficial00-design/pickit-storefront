@@ -1,6 +1,4 @@
-import React, { useEffect, useState } from "react";
-import * as WebBrowser from "expo-web-browser";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useState } from "react";
 import {
   FlatList,
   Image,
@@ -15,39 +13,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { Product } from "../services/storeApi";
 
 export default function AccountScreen() {
   const navigation = useNavigation<any>();
   const { wishlist, toggleWishlist, addToCart } = useCart();
+  const { user, openAuthModal, signOut } = useAuth();
   const [policyModal, setPolicyModal] = useState<{ title: string; body: string } | null>(null);
-  const [memberEmail, setMemberEmail] = useState<string | null>(null);
-
-  useEffect(() => {
-    AsyncStorage.getItem("pickit_member_email").then((val) => {
-      if (val) setMemberEmail(val);
-    });
-  }, []);
-
-  const handleOpenAccountAuth = async (path: string) => {
-    try {
-      await WebBrowser.openBrowserAsync(`https://pickit-storefront.vercel.app${path}`, {
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
-        toolbarColor: "#FFFFFF",
-        controlsColor: "#FF6B00",
-      });
-      await AsyncStorage.setItem("pickit_member_email", "Signed in via PICKIT Account");
-      setMemberEmail("Signed in via PICKIT Account");
-    } catch {}
-  };
-
-  const handleSignOutMobile = async () => {
-    await AsyncStorage.removeItem("pickit_member_email");
-    setMemberEmail(null);
-    try {
-      await WebBrowser.openBrowserAsync("https://pickit-storefront.vercel.app/account/logout");
-    } catch {}
-  };
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
 
@@ -173,58 +146,59 @@ export default function AccountScreen() {
     );
   };
 
+  const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(" ").trim() : "";
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.profileCard}>
-          <Text style={styles.wordmark}>
-            <Text style={styles.wordmarkPick}>PICK</Text>
-            <Text style={styles.wordmarkIt}>IT.</Text>
-          </Text>
-          <Text style={styles.tagline}>
-            {memberEmail
-              ? "Welcome back! Manage your orders, tracking, and saved account details."
-              : "Sign in to track your orders, manage returns, and speed through checkout."}
-          </Text>
-
-          {memberEmail ? (
-            <View style={{ width: "100%", gap: 10, marginTop: 4 }}>
-              <View style={styles.signedInBanner}>
-                <Ionicons name="person-circle" size={22} color="#059669" />
-                <Text style={styles.signedInText}>PICKIT Member Active</Text>
+          {user ? (
+            <>
+              <View style={styles.avatarCircle}>
+                <Text style={styles.avatarInitial}>
+                  {(fullName || user.email || "P").charAt(0).toUpperCase()}
+                </Text>
               </View>
-              <View style={{ flexDirection: "row", gap: 10 }}>
-                <TouchableOpacity
-                  style={styles.accountPrimaryBtn}
-                  onPress={() => handleOpenAccountAuth("/account")}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="person-outline" size={16} color="#FFFFFF" />
-                  <Text style={styles.accountPrimaryBtnText}>Manage Account</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.accountSecondaryBtn}
-                  onPress={handleSignOutMobile}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.accountSecondaryBtnText}>Sign Out</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <View style={{ flexDirection: "row", gap: 10, width: "100%", marginTop: 4 }}>
+              <Text style={styles.memberName}>{fullName || "PICKIT Member"}</Text>
+              <Text style={styles.memberEmail}>{user.email}</Text>
               <TouchableOpacity
-                style={styles.accountPrimaryBtn}
-                onPress={() => handleOpenAccountAuth("/account/login")}
+                style={styles.signOutBtn}
+                onPress={signOut}
                 activeOpacity={0.85}
               >
-                <Ionicons name="log-in-outline" size={17} color="#FFFFFF" />
-                <Text style={styles.accountPrimaryBtnText}>Sign In / Create Account</Text>
+                <Ionicons name="log-out-outline" size={16} color="#111827" />
+                <Text style={styles.signOutBtnText}>Sign Out</Text>
               </TouchableOpacity>
-            </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.wordmark}>
+                <Text style={styles.wordmarkPick}>PICK</Text>
+                <Text style={styles.wordmarkIt}>IT.</Text>
+              </Text>
+              <Text style={styles.tagline}>
+                Sign in or create an account to save your wishlist, sync your cart, and track orders.
+              </Text>
+              <View style={{ flexDirection: "row", gap: 10, width: "100%", marginBottom: 12 }}>
+                <TouchableOpacity
+                  style={styles.signInBtn}
+                  onPress={() => openAuthModal("login")}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.signInBtnText}>Sign In</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.signUpBtn}
+                  onPress={() => openAuthModal("signup")}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.signUpBtnText}>Create Account</Text>
+                </TouchableOpacity>
+              </View>
+            </>
           )}
 
-          <View style={[styles.badgeRow, { marginTop: 12 }]}>
+          <View style={styles.badgeRow}>
             <View style={styles.trustChip}>
               <Ionicons name="checkmark-circle" size={14} color="#FF6B00" />
               <Text style={styles.trustChipText}>US Storefront</Text>
@@ -236,7 +210,6 @@ export default function AccountScreen() {
           </View>
         </View>
 
-        {/* Flipkart / Amazon-style 2-Column Quick Action Row */}
         <View style={styles.quickActionRow}>
           <TouchableOpacity
             style={styles.quickActionCard}
@@ -285,7 +258,6 @@ export default function AccountScreen() {
         <Text style={styles.footerNote}>PICKIT. Official Mobile App • Powered by Shopify SSL</Text>
       </ScrollView>
 
-      {/* Dedicated "Your Wishlist" Modal (Shows Home-Style Product Grid Only When Tapped) */}
       <Modal
         visible={wishlistOpen}
         animationType="slide"
@@ -336,7 +308,6 @@ export default function AccountScreen() {
         </SafeAreaView>
       </Modal>
 
-      {/* Policy Modal */}
       <Modal visible={!!policyModal} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -367,50 +338,52 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     marginBottom: 14,
   },
-  wordmark: {
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: -0.8,
-    marginBottom: 6,
+  avatarCircle: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: "#FF6B00",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
   },
-  wordmarkPick: { color: "#111827" },
-  wordmarkIt: { color: "#FF6B00" },
-  tagline: { fontSize: 13, color: "#4B5563", textAlign: "center", lineHeight: 19, marginBottom: 12 },
-  badgeRow: { flexDirection: "row", gap: 8 },
-  signedInBanner: {
+  avatarInitial: { color: "#FFFFFF", fontSize: 26, fontWeight: "900" },
+  memberName: { fontSize: 19, fontWeight: "900", color: "#111827" },
+  memberEmail: { fontSize: 13.5, color: "#6B7280", marginTop: 2, marginBottom: 12 },
+  signOutBtn: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: 6,
-    backgroundColor: "#ECFDF5",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-  },
-  signedInText: { fontSize: 13, fontWeight: "800", color: "#059669" },
-  accountPrimaryBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: "#111827",
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-  },
-  accountPrimaryBtnText: { color: "#FFFFFF", fontSize: 13.5, fontWeight: "800" },
-  accountSecondaryBtn: {
-    alignItems: "center",
-    justifyContent: "center",
     backgroundColor: "#F3F4F6",
-    paddingVertical: 13,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: "#E5E7EB",
+    marginBottom: 12,
   },
-  accountSecondaryBtnText: { color: "#111827", fontSize: 13.5, fontWeight: "800" },
+  signOutBtnText: { fontSize: 13, fontWeight: "800", color: "#111827" },
+  signInBtn: {
+    flex: 1,
+    backgroundColor: "#111827",
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  signInBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
+  signUpBtn: {
+    flex: 1,
+    backgroundColor: "#FF6B00",
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  signUpBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
+  wordmark: { fontSize: 28, fontWeight: "900", letterSpacing: -0.8, marginBottom: 6 },
+  wordmarkPick: { color: "#111827" },
+  wordmarkIt: { color: "#FF6B00" },
+  tagline: { fontSize: 13, color: "#4B5563", textAlign: "center", lineHeight: 19, marginBottom: 14 },
+  badgeRow: { flexDirection: "row", gap: 8 },
   trustChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -421,11 +394,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   trustChipText: { color: "#111827", fontSize: 11.5, fontWeight: "700" },
-  quickActionRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 18,
-  },
+  quickActionRow: { flexDirection: "row", gap: 10, marginBottom: 18 },
   quickActionCard: {
     flex: 1,
     flexDirection: "row",
@@ -438,22 +407,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
-  quickActionText: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#111827",
-  },
-  wishCountBadge: {
-    backgroundColor: "#FF6B00",
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-  },
-  wishCountText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "800",
-  },
+  quickActionText: { fontSize: 14, fontWeight: "800", color: "#111827" },
+  wishCountBadge: { backgroundColor: "#FF6B00", borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 },
+  wishCountText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
   section: { marginBottom: 18 },
   sectionTitle: { fontSize: 16, fontWeight: "800", color: "#111827", marginBottom: 10 },
   menuRow: {
@@ -478,8 +434,6 @@ const styles = StyleSheet.create({
   menuTitle: { fontSize: 14.5, fontWeight: "800", color: "#111827" },
   menuSub: { fontSize: 12, color: "#6B7280", marginTop: 1 },
   footerNote: { textAlign: "center", fontSize: 11.5, color: "#9CA3AF", marginTop: 8 },
-
-  /* Dedicated Your Wishlist Modal (Home-Style Product Grid) */
   wishModalContainer: { flex: 1, backgroundColor: "#F1F5F9" },
   wishModalHeader: {
     flexDirection: "row",
@@ -514,14 +468,8 @@ const styles = StyleSheet.create({
   },
   emptyWishTitle: { fontSize: 18, fontWeight: "900", color: "#111827", marginBottom: 6 },
   emptyWishSub: { fontSize: 13.5, color: "#6B7280", textAlign: "center", lineHeight: 20, marginBottom: 20 },
-  browseBtn: {
-    backgroundColor: "#111827",
-    paddingHorizontal: 22,
-    paddingVertical: 12,
-    borderRadius: 999,
-  },
+  browseBtn: { backgroundColor: "#111827", paddingHorizontal: 22, paddingVertical: 12, borderRadius: 999 },
   browseBtnText: { color: "#FFFFFF", fontSize: 13.5, fontWeight: "800" },
-
   gridRow: { paddingHorizontal: 12, justifyContent: "space-between", marginBottom: 10 },
   card: {
     width: "48.5%",
@@ -530,22 +478,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 5,
-    elevation: 2,
   },
   imageWrap: { width: "100%", height: 155, backgroundColor: "#F8FAFC", position: "relative" },
   productImage: { width: "100%", height: "100%" },
-  discountBadge: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    backgroundColor: "#059669",
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 5,
-  },
+  discountBadge: { position: "absolute", top: 8, left: 8, backgroundColor: "#059669", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5 },
   discountText: { color: "#FFFFFF", fontSize: 10, fontWeight: "800" },
   heartBtnSaved: {
     position: "absolute",
@@ -561,66 +497,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cardBody: { padding: 10 },
-  assuredRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 3,
-  },
+  assuredRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 3 },
   brandText: { fontSize: 10, fontWeight: "800", color: "#6B7280", textTransform: "uppercase", flex: 1 },
-  assuredPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    backgroundColor: "#FFF7ED",
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
+  assuredPill: { flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "#FFF7ED", paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 },
   assuredText: { fontSize: 9.5, fontWeight: "800", color: "#FF6B00" },
   productName: { fontSize: 13.5, fontWeight: "700", color: "#111827", lineHeight: 18, minHeight: 36 },
   ratingRow: { flexDirection: "row", alignItems: "center", marginTop: 6, marginBottom: 8, gap: 6 },
-  greenRatingBadge: {
-    backgroundColor: "#15803D",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
+  greenRatingBadge: { backgroundColor: "#15803D", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   greenRatingText: { color: "#FFFFFF", fontSize: 10.5, fontWeight: "800" },
   deliveryTag: { fontSize: 11, color: "#374151", fontWeight: "700" },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 4,
-  },
+  priceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 4 },
   priceText: { fontSize: 15, fontWeight: "900", color: "#111827" },
-  addBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#111827",
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
+  addBtn: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#111827", paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8 },
   addBtnSuccess: { backgroundColor: "#059669" },
   addBtnText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
-
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(17,24,39,0.55)",
-    justifyContent: "center",
-    padding: 24,
-  },
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(17,24,39,0.55)", justifyContent: "center", padding: 24 },
   modalCard: { backgroundColor: "#FFFFFF", borderRadius: 18, padding: 22 },
   modalTitle: { fontSize: 18, fontWeight: "900", color: "#111827", marginBottom: 10 },
   modalBody: { fontSize: 14, color: "#4B5563", lineHeight: 21, marginBottom: 18 },
-  modalCloseBtn: {
-    backgroundColor: "#FF6B00",
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-  },
+  modalCloseBtn: { backgroundColor: "#FF6B00", paddingVertical: 12, borderRadius: 12, alignItems: "center" },
   modalCloseText: { color: "#FFFFFF", fontWeight: "800", fontSize: 14 },
 });

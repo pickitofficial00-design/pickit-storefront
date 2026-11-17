@@ -6,6 +6,7 @@ import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import { AuthProvider } from "./src/context/AuthContext";
 import { CartProvider, useCart } from "./src/context/CartContext";
 import HomeScreen from "./src/screens/HomeScreen";
 import CategoriesScreen from "./src/screens/CategoriesScreen";
@@ -152,6 +153,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
+      <AuthProvider>
       <CartProvider>
         <NavigationContainer theme={PickitTheme}>
           <Stack.Navigator>
@@ -175,6 +177,7 @@ export default function App() {
           </Stack.Navigator>
         </NavigationContainer>
       </CartProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

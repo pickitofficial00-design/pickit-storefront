@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { Product } from "../services/storeApi";
+import { useAuth } from "./AuthContext";
 
 export interface CartItem {
   product: Product;
@@ -52,6 +53,7 @@ const CartContext = createContext<CartContextType>({
 });
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const { requireAuth } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [wishlist, setWishlist] = useState<Product[]>([]);
@@ -86,6 +88,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [wishlist, hydrated]);
 
   const addToCart = (product: Product, qty = 1) => {
+    requireAuth(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setItems((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
@@ -95,6 +98,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         );
       }
       return [...prev, { product, quantity: qty }];
+    });
     });
   };
 
@@ -136,12 +140,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleWishlist = (product: Product) => {
+    requireAuth(() => {
     Haptics.selectionAsync();
     setWishlist((prev) =>
       prev.some((p) => p.id === product.id)
         ? prev.filter((p) => p.id !== product.id)
         : [product, ...prev]
     );
+    });
   };
 
   const isWishlisted = (productId: string) => wishlist.some((p) => p.id === productId);

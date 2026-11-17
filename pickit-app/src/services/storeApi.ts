@@ -6,6 +6,7 @@ const API_BASE_URL = "https://pickit-storefront.vercel.app";
 export interface ProductVariant {
   id: string;
   title: string;
+  sku?: string | null;
   price: number;
   compareAtPrice?: number | null;
   availableForSale: boolean;
@@ -23,6 +24,8 @@ export interface Product {
   handle: string;
   name: string;
   description: string;
+  descriptionHtml?: string;
+  tags?: string[];
   price: number;
   currency: string;
   variantId: string | null;

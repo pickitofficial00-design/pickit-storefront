@@ -18,23 +18,77 @@ import { useCart } from "../context/CartContext";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const sessionAddedProducts = new Set<string>();
 
+function cleanStandardUsTitle(raw: string): string {
+  if (!raw) return "PICKIT Verified Essential";
+  let clean = raw
+    .replace(/\b(202[0-9]\s*)+/g, "")
+    .replace(/\s*\/\s*/g, " / ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (clean.length > 82) {
+    const cut = clean.slice(0, 82);
+    const lastSpace = cut.lastIndexOf(" ");
+    clean = (lastSpace > 48 ? cut.slice(0, lastSpace) : cut).replace(/[,\-\/|]+$/, "").trim();
+  }
+  return clean;
+}
+
+function parseDescriptionDetails(html?: string, plain?: string) {
+  const sourceHtml = html || "";
+  const listMatches = [...sourceHtml.matchAll(/<li[^>]*>(.*?)<\/li>/gis)].map((m) =>
+    m[1].replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim()
+  ).filter(Boolean);
+
+  const stripped = (sourceHtml || plain || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  const lines = stripped
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 2);
+
+  const specPairs: { label: string; value: string }[] = [];
+  const paragraphs: string[] = [];
+
+  for (const line of lines) {
+    const colonIdx = line.indexOf(":");
+    if (colonIdx > 1 && colonIdx < 36 && line.length < 160) {
+      const label = line.slice(0, colonIdx).replace(/^[•\-*\s]+/, "").trim();
+      const value = line.slice(colonIdx + 1).trim();
+      if (label && value) {
+        specPairs.push({ label, value });
+        continue;
+      }
+    }
+    paragraphs.push(line);
+  }
+
+  const highlights =
+    listMatches.length > 0
+      ? listMatches.slice(0, 8)
+      : specPairs.slice(0, 5).map((s) => `${s.label}: ${s.value}`);
+
+  return {
+    highlights,
+    specPairs,
+    fullBody: paragraphs.join("\n\n") || stripped,
+  };
+}
+
 export default function ProductScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const initialProduct: Product = route.params?.product;
   const [product, setProduct] = useState<Product>(initialProduct);
-
-  useEffect(() => {
-    if (!initialProduct?.handle) return;
-    fetchProductByHandle(initialProduct.handle).then((fresh) => {
-      if (fresh && fresh.id) {
-        setProduct((prev) => ({ ...prev, ...fresh }));
-        if (fresh.variants && fresh.variants.length > 0) {
-          setSelectedVariant(fresh.variants[0]);
-        }
-      }
-    });
-  }, [initialProduct?.handle]);
 
   const { items, addToCart, removeFromCart, toggleWishlist, isWishlisted } = useCart();
 
@@ -57,6 +111,18 @@ export default function ProductScreen() {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     () => variants[0] || null
   );
+
+  useEffect(() => {
+    if (!initialProduct?.handle) return;
+    fetchProductByHandle(initialProduct.handle).then((fresh) => {
+      if (fresh && fresh.id) {
+        setProduct((prev) => ({ ...prev, ...fresh }));
+        if (fresh.variants && fresh.variants.length > 0) {
+          setSelectedVariant(fresh.variants[0]);
+        }
+      }
+    });
+  }, [initialProduct?.handle]);
 
   const galleryImages: string[] = useMemo(() => {
     if (!product) return [];
@@ -91,6 +157,11 @@ export default function ProductScreen() {
         items.some((i) => i.product.id === product.id && i.product.variantId === activeVariantId))
   );
 
+  const parsedDetails = useMemo(
+    () => parseDescriptionDetails(product?.descriptionHtml, product?.description),
+    [product?.descriptionHtml, product?.description]
+  );
+
   if (!product) {
     return (
       <View style={styles.center}>
@@ -99,6 +170,7 @@ export default function ProductScreen() {
     );
   }
 
+  const displayTitle = cleanStandardUsTitle(product.name);
   const saved = isWishlisted(product.id);
   const rating = product.rating && product.rating > 0 ? product.rating.toFixed(1) : "4.8";
   const displayPrice = selectedVariant ? selectedVariant.price : product.price;
@@ -140,8 +212,8 @@ export default function ProductScreen() {
     image: selectedVariant?.image || galleryImages[activePhotoIndex] || product.image,
     name:
       selectedVariant && selectedVariant.title !== "Default Title"
-        ? `${product.name} (${selectedVariant.title})`
-        : product.name,
+        ? `${displayTitle} (${selectedVariant.title})`
+        : displayTitle,
   });
 
   const handleToggleCart = () => {
@@ -167,9 +239,25 @@ export default function ProductScreen() {
     navigation.navigate("Cart");
   };
 
+  const baseSpecs: { label: string; value: string }[] = [
+    { label: "Brand", value: product.brand && product.brand !== "Unbranded" ? product.brand : "PICKIT" },
+    { label: "Department", value: product.category || "Electronics & Essentials" },
+    ...(hasRealVariants && selectedVariant
+      ? [{ label: "Selected Option", value: selectedVariant.title }]
+      : []),
+    ...(selectedVariant?.sku ? [{ label: "Model / SKU", value: selectedVariant.sku }] : []),
+    {
+      label: "Availability",
+      value: selectedVariant?.availableForSale === false ? "Out of Stock" : "In Stock — Ships from US",
+    },
+    { label: "Warranty & Returns", value: "30-Day PICKIT Buyer Protection" },
+  ];
+
+  const allSpecRows = [...baseSpecs, ...parsedDetails.specPairs];
+
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={true}>
         {/* Multi-Photo Swipeable Image Gallery */}
         <View style={styles.imageContainer}>
           <FlatList
@@ -217,7 +305,7 @@ export default function ProductScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Thumbnail Strip when multiple product photos exist */}
+        {/* Thumbnail Strip */}
         {galleryImages.length > 1 && (
           <View style={styles.thumbStripWrap}>
             <ScrollView
@@ -241,26 +329,29 @@ export default function ProductScreen() {
           </View>
         )}
 
+        {/* Primary Buy Box Card */}
         <View style={styles.infoCard}>
           <View style={styles.topMetaRow}>
             <View style={styles.brandRow}>
               <Ionicons name="checkmark-circle" size={14} color="#FF6B00" />
-              <Text style={styles.brandBadge}>{product.brand || "PICKIT ASSURED"}</Text>
+              <Text style={styles.brandBadge}>
+                {product.brand && product.brand !== "Unbranded" ? product.brand : "PICKIT ASSURED"}
+              </Text>
             </View>
             <Text style={styles.stockBadge}>
               {selectedVariant?.availableForSale === false
                 ? "● Out of Stock"
-                : "● In Stock • Ready to Ship"}
+                : "● In Stock • Ships Fast"}
             </Text>
           </View>
 
-          <Text style={styles.title}>{product.name}</Text>
+          <Text style={styles.title}>{displayTitle}</Text>
 
           <View style={styles.ratingRow}>
             <View style={styles.greenRatingPill}>
               <Text style={styles.greenRatingText}>{rating} ★</Text>
             </View>
-            <Text style={styles.reviewCount}>Verified US Buyer Rating</Text>
+            <Text style={styles.reviewCount}>Verified US Customer Rating</Text>
           </View>
 
           <View style={styles.priceBox}>
@@ -275,7 +366,7 @@ export default function ProductScreen() {
             </View>
           </View>
 
-          {/* Interactive Variant Selector Pills */}
+          {/* Interactive Variant Selector */}
           {hasRealVariants && (
             <View style={styles.variantSection}>
               <Text style={styles.variantHeading}>
@@ -329,6 +420,7 @@ export default function ProductScreen() {
             </View>
           )}
 
+          {/* Quantity Stepper */}
           <View style={styles.qtyRow}>
             <Text style={styles.qtyLabel}>Quantity</Text>
             <View style={styles.stepper}>
@@ -348,6 +440,7 @@ export default function ProductScreen() {
             </View>
           </View>
 
+          {/* US Trust & Guarantee Strip */}
           <View style={styles.trustGrid}>
             <View style={styles.trustItem}>
               <View style={styles.trustIconBox}>
@@ -355,7 +448,7 @@ export default function ProductScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.trustTitle}>Fast US Tracked Delivery</Text>
-                <Text style={styles.trustSub}>Dispatched within 24–48 hrs with live tracking</Text>
+                <Text style={styles.trustSub}>Dispatched within 24–48 hrs with live USPS/UPS tracking</Text>
               </View>
             </View>
             <View style={styles.trustItem}>
@@ -377,15 +470,64 @@ export default function ProductScreen() {
               </View>
             </View>
           </View>
+        </View>
 
-          <Text style={styles.descHeading}>Product Overview</Text>
+        {/* SCROLL DOWN SECTION 1: Key Highlights */}
+        {parsedDetails.highlights.length > 0 && (
+          <View style={styles.detailSectionCard}>
+            <View style={styles.sectionHeaderRow}>
+              <Ionicons name="sparkles-outline" size={18} color="#FF6B00" />
+              <Text style={styles.sectionHeading}>Key Highlights</Text>
+            </View>
+            <View style={styles.bulletList}>
+              {parsedDetails.highlights.map((bullet, i) => (
+                <View key={i} style={styles.bulletRow}>
+                  <View style={styles.bulletDot} />
+                  <Text style={styles.bulletText}>{bullet}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* SCROLL DOWN SECTION 2: Product Specifications Table */}
+        <View style={styles.detailSectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="list-outline" size={19} color="#FF6B00" />
+            <Text style={styles.sectionHeading}>Product Specifications</Text>
+          </View>
+          <View style={styles.specTable}>
+            {allSpecRows.map((row, idx) => (
+              <View
+                key={`${row.label}_${idx}`}
+                style={[
+                  styles.specRow,
+                  idx % 2 === 0 ? styles.specRowEven : styles.specRowOdd,
+                  idx === allSpecRows.length - 1 && { borderBottomWidth: 0 },
+                ]}
+              >
+                <Text style={styles.specLabel}>{row.label}</Text>
+                <Text style={styles.specValue}>{row.value}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* SCROLL DOWN SECTION 3: Full Product Description & Details */}
+        <View style={styles.detailSectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="document-text-outline" size={18} color="#FF6B00" />
+            <Text style={styles.sectionHeading}>Full Product Details</Text>
+          </View>
           <Text style={styles.descText}>
-            {product.description ||
-              "Crafted for everyday reliability and inspected for quality before shipping. Backed by PICKIT's 30-day satisfaction guarantee."}
+            {parsedDetails.fullBody ||
+              product.description ||
+              "Engineered for everyday reliability and inspected for quality prior to US dispatch. Includes PICKIT's 30-day satisfaction and return guarantee."}
           </Text>
         </View>
       </ScrollView>
 
+      {/* Sticky Bottom Action Bar */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={[styles.cartToggleBtn, isAddedSession && styles.addedToggleBtn]}
@@ -416,9 +558,9 @@ export default function ProductScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8FAFC" },
+  container: { flex: 1, backgroundColor: "#F1F5F9" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  scroll: { paddingBottom: 24 },
+  scroll: { paddingBottom: 32 },
   imageContainer: {
     width: SCREEN_WIDTH,
     height: 330,
@@ -430,7 +572,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 14,
     right: 14,
-    backgroundColor: "rgba(17, 24, 39, 0.75)",
+    backgroundColor: "rgba(17, 24, 39, 0.78)",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
@@ -475,10 +617,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#F3F4F6",
   },
-  thumbStrip: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
+  thumbStrip: { paddingHorizontal: 16, gap: 8 },
   thumbBox: {
     width: 54,
     height: 54,
@@ -488,26 +627,22 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "#F8FAFC",
   },
-  thumbBoxActive: {
-    borderColor: "#FF6B00",
-    borderWidth: 2,
-  },
-  thumbImg: {
-    width: "100%",
-    height: "100%",
-  },
+  thumbBoxActive: { borderColor: "#FF6B00", borderWidth: 2 },
+  thumbImg: { width: "100%", height: "100%" },
+
   infoCard: {
     backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    marginTop: 6,
-    padding: 20,
+    marginTop: 8,
+    padding: 18,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#E5E7EB",
   },
   topMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   brandBadge: { fontSize: 11, fontWeight: "800", color: "#FF6B00", textTransform: "uppercase" },
   stockBadge: { fontSize: 12, fontWeight: "700", color: "#059669" },
-  title: { fontSize: 20, fontWeight: "900", color: "#111827", lineHeight: 26, marginBottom: 8 },
+  title: { fontSize: 19.5, fontWeight: "800", color: "#111827", lineHeight: 26, marginBottom: 8 },
   ratingRow: { flexDirection: "row", alignItems: "center", marginBottom: 14, gap: 8 },
   greenRatingPill: { backgroundColor: "#15803D", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5 },
   greenRatingText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
@@ -518,27 +653,10 @@ const styles = StyleSheet.create({
   freeShipTag: { backgroundColor: "#ECFDF5", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6 },
   freeShipText: { color: "#059669", fontSize: 11, fontWeight: "800" },
 
-  /* Variant Selector Styles */
-  variantSection: {
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderColor: "#F3F4F6",
-  },
-  variantHeading: {
-    fontSize: 13.5,
-    fontWeight: "700",
-    color: "#4B5563",
-    marginBottom: 10,
-  },
-  variantSelectedLabel: {
-    color: "#111827",
-    fontWeight: "900",
-  },
-  variantGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
+  variantSection: { paddingVertical: 14, borderTopWidth: 1, borderColor: "#F3F4F6" },
+  variantHeading: { fontSize: 13.5, fontWeight: "700", color: "#4B5563", marginBottom: 10 },
+  variantSelectedLabel: { color: "#111827", fontWeight: "900" },
+  variantGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   variantPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -550,36 +668,13 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     backgroundColor: "#F9FAFB",
   },
-  variantPillActive: {
-    borderColor: "#FF6B00",
-    backgroundColor: "#FFF7ED",
-  },
-  variantPillDisabled: {
-    opacity: 0.45,
-  },
-  variantPillThumb: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    backgroundColor: "#FFFFFF",
-  },
-  variantPillText: {
-    fontSize: 12.5,
-    fontWeight: "800",
-    color: "#111827",
-  },
-  variantPillTextActive: {
-    color: "#FF6B00",
-  },
-  variantPillPrice: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#6B7280",
-  },
-  variantPillPriceActive: {
-    color: "#111827",
-    fontWeight: "700",
-  },
+  variantPillActive: { borderColor: "#FF6B00", backgroundColor: "#FFF7ED" },
+  variantPillDisabled: { opacity: 0.45 },
+  variantPillThumb: { width: 28, height: 28, borderRadius: 6, backgroundColor: "#FFFFFF" },
+  variantPillText: { fontSize: 12.5, fontWeight: "800", color: "#111827" },
+  variantPillTextActive: { color: "#FF6B00" },
+  variantPillPrice: { fontSize: 11, fontWeight: "600", color: "#6B7280" },
+  variantPillPriceActive: { color: "#111827", fontWeight: "700" },
 
   qtyRow: {
     flexDirection: "row",
@@ -589,12 +684,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#F3F4F6",
-    marginBottom: 18,
+    marginBottom: 16,
   },
   qtyLabel: { fontSize: 15, fontWeight: "700", color: "#111827" },
   stepper: { flexDirection: "row", alignItems: "center", backgroundColor: "#F3F4F6", borderRadius: 10 },
   stepBtn: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
   qtyVal: { fontSize: 16, fontWeight: "800", color: "#111827", paddingHorizontal: 14 },
+
   trustGrid: {
     backgroundColor: "#F8FAFC",
     borderRadius: 14,
@@ -602,7 +698,6 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    marginBottom: 20,
   },
   trustItem: { flexDirection: "row", alignItems: "center", gap: 12 },
   trustIconBox: {
@@ -615,8 +710,78 @@ const styles = StyleSheet.create({
   },
   trustTitle: { fontSize: 13, fontWeight: "800", color: "#111827" },
   trustSub: { fontSize: 12, color: "#6B7280", marginTop: 1 },
-  descHeading: { fontSize: 16, fontWeight: "800", color: "#111827", marginBottom: 8 },
-  descText: { fontSize: 14, color: "#4B5563", lineHeight: 22 },
+
+  /* Scroll-Down Specification & Detail Cards */
+  detailSectionCard: {
+    backgroundColor: "#FFFFFF",
+    marginTop: 10,
+    padding: 18,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  sectionHeading: {
+    fontSize: 16.5,
+    fontWeight: "900",
+    color: "#111827",
+  },
+  bulletList: { gap: 9 },
+  bulletRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  bulletDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#FF6B00",
+    marginTop: 7,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 13.5,
+    color: "#374151",
+    lineHeight: 20,
+    fontWeight: "500",
+  },
+  specTable: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  specRow: {
+    flexDirection: "row",
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  specRowEven: { backgroundColor: "#F8FAFC" },
+  specRowOdd: { backgroundColor: "#FFFFFF" },
+  specLabel: {
+    width: "38%",
+    fontSize: 12.5,
+    fontWeight: "700",
+    color: "#4B5563",
+    paddingRight: 8,
+  },
+  specValue: {
+    flex: 1,
+    fontSize: 12.5,
+    fontWeight: "600",
+    color: "#111827",
+    lineHeight: 18,
+  },
+  descText: {
+    fontSize: 14,
+    color: "#374151",
+    lineHeight: 22,
+  },
+
   bottomBar: {
     flexDirection: "row",
     paddingHorizontal: 14,
@@ -636,9 +801,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  addedToggleBtn: {
-    backgroundColor: "#059669",
-  },
+  addedToggleBtn: { backgroundColor: "#059669" },
   cartToggleText: { color: "#FFFFFF", fontSize: 14.5, fontWeight: "900" },
   buyNowBtn: {
     flex: 1,

@@ -1,6 +1,21 @@
 import { gql } from "@shopify/hydrogen";
 import { createRequestStorefrontClient } from "../../../lib/storefront";
 
+function formatUsTitle(raw: string): string {
+  if (!raw) return "PICKIT Essential";
+  let clean = raw
+    .replace(/\b(202[0-9]\s*)+/g, "")
+    .replace(/\s*\/\s*/g, " / ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (clean.length > 76) {
+    const cut = clean.slice(0, 76);
+    const lastSpace = cut.lastIndexOf(" ");
+    clean = (lastSpace > 45 ? cut.slice(0, lastSpace) : cut).replace(/[,\-\/|]+$/, "").trim();
+  }
+  return clean;
+}
+
 const PRODUCTS_QUERY = gql(`
   query PickitProducts($after: String) {
     products(first: 100, after: $after) {
@@ -122,7 +137,7 @@ export async function GET(request: Request) {
       return {
         id: product.id,
         handle: product.handle,
-        name: product.title,
+        name: formatUsTitle(product.title),
         description: product.description,
         price,
         currency: firstVariant?.price?.currencyCode ?? "USD",

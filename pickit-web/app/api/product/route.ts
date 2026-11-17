@@ -1,6 +1,21 @@
 import { gql } from "@shopify/hydrogen";
 import { createRequestStorefrontClient } from "../../../lib/storefront";
 
+function formatUsTitle(raw: string): string {
+  if (!raw) return "PICKIT Essential";
+  let clean = raw
+    .replace(/\b(202[0-9]\s*)+/g, "")
+    .replace(/\s*\/\s*/g, " / ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (clean.length > 82) {
+    const cut = clean.slice(0, 82);
+    const lastSpace = cut.lastIndexOf(" ");
+    clean = (lastSpace > 50 ? cut.slice(0, lastSpace) : cut).replace(/[,\-\/|]+$/, "").trim();
+  }
+  return clean;
+}
+
 const SINGLE_PRODUCT_QUERY = gql(`
   query PickitSingleProduct($handle: String!) {
     product(handle: $handle) {
@@ -8,8 +23,10 @@ const SINGLE_PRODUCT_QUERY = gql(`
       handle
       title
       description
+      descriptionHtml
       productType
       vendor
+      tags
       availableForSale
       featuredImage {
         url
@@ -29,6 +46,7 @@ const SINGLE_PRODUCT_QUERY = gql(`
         nodes {
           id
           title
+          sku
           availableForSale
           price {
             amount
@@ -93,16 +111,19 @@ export async function GET(request: Request) {
     return Response.json({
       id: product.id,
       handle: product.handle,
-      name: product.title,
-      description: product.description,
+      name: formatUsTitle(product.title),
+      rawTitle: product.title,
+      description: product.description || "",
+      descriptionHtml: product.descriptionHtml || "",
+      tags: product.tags || [],
       price,
       currency: firstVariant?.price?.currencyCode ?? "USD",
       variantId: firstVariant?.id ?? null,
       rating: 4.8,
-      brand: product.vendor || "PICKIT",
+      brand: product.vendor && product.vendor !== "Unbranded" ? product.vendor : "PICKIT",
       inStock: product.availableForSale,
       discount,
-      category: product.productType || "Other",
+      category: product.productType || "Essentials",
       image: imageUrls[0] ?? "",
       images: imageUrls,
       imageAlt: product.featuredImage?.altText ?? product.title,
@@ -110,6 +131,7 @@ export async function GET(request: Request) {
       variants: variantNodes.map((v: any) => ({
         id: v.id,
         title: v.title,
+        sku: v.sku || null,
         price: Number(v.price?.amount ?? price),
         compareAtPrice: v.compareAtPrice ? Number(v.compareAtPrice.amount) : null,
         availableForSale: Boolean(v.availableForSale),

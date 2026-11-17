@@ -27,12 +27,14 @@ export interface PickitUser {
   accessToken: string;
 }
 
+type AuthMode = "login" | "signup" | "recover";
+
 interface AuthContextType {
   user: PickitUser | null;
   isGuest: boolean;
   ready: boolean;
-  openAuthModal: (defaultTab?: "login" | "signup", onSuccess?: () => void) => void;
-  requireAuth: (actionCallback: () => void, defaultTab?: "login" | "signup") => boolean;
+  openAuthModal: (defaultTab?: AuthMode, onSuccess?: () => void) => void;
+  requireAuth: (actionCallback: () => void, defaultTab?: AuthMode) => boolean;
   signOut: () => Promise<void>;
 }
 
@@ -51,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState<boolean>(false);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<AuthMode>("login");
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   const [firstName, setFirstName] = useState("");
@@ -61,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -84,17 +87,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setWelcomeSeen(true);
     setModalVisible(false);
     setErrorMsg(null);
+    setSuccessMsg(null);
     await AsyncStorage.setItem(GUEST_DISMISSED_KEY, "1").catch(() => {});
   };
 
-  const openAuthModal = (defaultTab: "login" | "signup" = "login", onSuccess?: () => void) => {
+  const openAuthModal = (defaultTab: AuthMode = "login", onSuccess?: () => void) => {
     setMode(defaultTab);
     setErrorMsg(null);
+    setSuccessMsg(null);
     setPendingAction(() => onSuccess || null);
     setModalVisible(true);
   };
 
-  const requireAuth = (actionCallback: () => void, defaultTab: "login" | "signup" = "login"): boolean => {
+  const requireAuth = (actionCallback: () => void, defaultTab: AuthMode = "login"): boolean => {
     if (user) {
       actionCallback();
       return true;
@@ -104,8 +109,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleSubmitAuth = async () => {
-    if (!email.trim() || !password) {
-      setErrorMsg("Please enter your email and password.");
+    if (!email.trim()) {
+      setErrorMsg("Please enter your email address.");
+      return;
+    }
+    if (mode !== "recover" && !password) {
+      setErrorMsg("Please enter your password.");
       return;
     }
     if (mode === "signup" && password.length < 5) {
@@ -115,11 +124,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setLoading(true);
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     try {
       const res = await fetch(`${API_BASE}/api/auth`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify({
           action: mode,
           email: email.trim(),
@@ -128,10 +141,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           lastName,
         }),
       });
-      const data = await res.json();
+
+      const rawText = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        setErrorMsg(`Server returned HTTP ${res.status}. Please try again in a moment.`);
+        setLoading(false);
+        return;
+      }
 
       if (!res.ok || data.error) {
-        setErrorMsg(data.error || "Unable to sign in. Please check your details.");
+        setErrorMsg(data.error || "Unable to complete request. Please check your details.");
+        setLoading(false);
+        return;
+      }
+
+      if (mode === "recover") {
+        setSuccessMsg(data.message || "Password reset email sent! Check your inbox.");
         setLoading(false);
         return;
       }
@@ -154,8 +182,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const cb = pendingAction;
       setPendingAction(null);
       if (cb) setTimeout(() => cb(), 120);
-    } catch {
-      setErrorMsg("Network error. Please check your connection and try again.");
+    } catch (e: any) {
+      setErrorMsg(e?.message || "Could not reach server. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -180,7 +208,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // First-Launch Native US Retail Welcome Gate (Sign Up / Sign In / Continue as Guest)
   if (!user && !welcomeSeen) {
     return (
       <SafeAreaView style={styles.welcomeContainer} edges={["top", "bottom"]}>
@@ -248,6 +275,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setMode={(m) => {
             setMode(m);
             setErrorMsg(null);
+            setSuccessMsg(null);
           }}
           firstName={firstName}
           setFirstName={setFirstName}
@@ -261,6 +289,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setShowPass={setShowPass}
           loading={loading}
           errorMsg={errorMsg}
+          successMsg={successMsg}
           onSubmit={handleSubmitAuth}
         />
       </SafeAreaView>
@@ -286,6 +315,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setMode={(m) => {
           setMode(m);
           setErrorMsg(null);
+          setSuccessMsg(null);
         }}
         firstName={firstName}
         setFirstName={setFirstName}
@@ -299,6 +329,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setShowPass={setShowPass}
         loading={loading}
         errorMsg={errorMsg}
+        successMsg={successMsg}
         onSubmit={handleSubmitAuth}
         isActionPrompt={!!pendingAction}
       />
@@ -309,8 +340,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 function AuthSheetModal(props: {
   visible: boolean;
   onClose: () => void;
-  mode: "login" | "signup";
-  setMode: (m: "login" | "signup") => void;
+  mode: AuthMode;
+  setMode: (m: AuthMode) => void;
   firstName: string;
   setFirstName: (v: string) => void;
   lastName: string;
@@ -323,6 +354,7 @@ function AuthSheetModal(props: {
   setShowPass: (v: boolean) => void;
   loading: boolean;
   errorMsg: string | null;
+  successMsg: string | null;
   onSubmit: () => void;
   isActionPrompt?: boolean;
 }) {
@@ -345,7 +377,7 @@ function AuthSheetModal(props: {
           </View>
 
           <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
-            {props.isActionPrompt && (
+            {props.isActionPrompt && props.mode !== "recover" && (
               <View style={styles.actionNotice}>
                 <Ionicons name="lock-closed" size={15} color="#FF6B00" />
                 <Text style={styles.actionNoticeText}>
@@ -355,38 +387,52 @@ function AuthSheetModal(props: {
             )}
 
             <Text style={styles.formHeading}>
-              {props.mode === "login" ? "Welcome Back" : "Create Your PICKIT Account"}
+              {props.mode === "recover"
+                ? "Reset Your Password"
+                : props.mode === "login"
+                ? "Welcome Back"
+                : "Create Your PICKIT Account"}
             </Text>
             <Text style={styles.formSub}>
-              {props.mode === "login"
+              {props.mode === "recover"
+                ? "Enter the email associated with your PICKIT account and we will send you a password reset link."
+                : props.mode === "login"
                 ? "Sign in with your PICKIT email and password."
                 : "Join PICKIT for fast US checkout, wishlists, and live order tracking."}
             </Text>
 
-            {/* Segmented Tab Switcher */}
-            <View style={styles.segmentWrap}>
-              <TouchableOpacity
-                style={[styles.segmentBtn, props.mode === "login" && styles.segmentBtnActive]}
-                onPress={() => props.setMode("login")}
-              >
-                <Text style={[styles.segmentText, props.mode === "login" && styles.segmentTextActive]}>
-                  Sign In
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.segmentBtn, props.mode === "signup" && styles.segmentBtnActive]}
-                onPress={() => props.setMode("signup")}
-              >
-                <Text style={[styles.segmentText, props.mode === "signup" && styles.segmentTextActive]}>
-                  Create Account
-                </Text>
-              </TouchableOpacity>
-            </View>
+            {props.mode !== "recover" && (
+              <View style={styles.segmentWrap}>
+                <TouchableOpacity
+                  style={[styles.segmentBtn, props.mode === "login" && styles.segmentBtnActive]}
+                  onPress={() => props.setMode("login")}
+                >
+                  <Text style={[styles.segmentText, props.mode === "login" && styles.segmentTextActive]}>
+                    Sign In
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.segmentBtn, props.mode === "signup" && styles.segmentBtnActive]}
+                  onPress={() => props.setMode("signup")}
+                >
+                  <Text style={[styles.segmentText, props.mode === "signup" && styles.segmentTextActive]}>
+                    Create Account
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {props.errorMsg && (
               <View style={styles.errorBanner}>
                 <Ionicons name="alert-circle" size={16} color="#DC2626" />
                 <Text style={styles.errorBannerText}>{props.errorMsg}</Text>
+              </View>
+            )}
+
+            {props.successMsg && (
+              <View style={styles.successBanner}>
+                <Ionicons name="checkmark-circle" size={16} color="#059669" />
+                <Text style={styles.successBannerText}>{props.successMsg}</Text>
               </View>
             )}
 
@@ -429,28 +475,46 @@ function AuthSheetModal(props: {
               autoCorrect={false}
             />
 
-            <Text style={styles.inputLabel}>Password</Text>
-            <View style={styles.passRow}>
-              <TextInput
-                style={[styles.input, { flex: 1, marginBottom: 0, borderWidth: 0 }]}
-                placeholder={props.mode === "signup" ? "Create a password (min 5 chars)" : "Enter your password"}
-                placeholderTextColor="#9CA3AF"
-                value={props.password}
-                onChangeText={props.setPassword}
-                secureTextEntry={!props.showPass}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                onPress={() => props.setShowPass(!props.showPass)}
-                style={{ paddingHorizontal: 12 }}
-              >
-                <Ionicons
-                  name={props.showPass ? "eye-off-outline" : "eye-outline"}
-                  size={20}
-                  color="#6B7280"
-                />
-              </TouchableOpacity>
-            </View>
+            {props.mode !== "recover" && (
+              <>
+                <Text style={styles.inputLabel}>Password</Text>
+                <View style={styles.passRow}>
+                  <TextInput
+                    style={[styles.input, { flex: 1, marginBottom: 0, borderWidth: 0 }]}
+                    placeholder={
+                      props.mode === "signup"
+                        ? "Create a password (min 5 chars)"
+                        : "Enter your password"
+                    }
+                    placeholderTextColor="#9CA3AF"
+                    value={props.password}
+                    onChangeText={props.setPassword}
+                    secureTextEntry={!props.showPass}
+                    autoCapitalize="none"
+                  />
+                  <TouchableOpacity
+                    onPress={() => props.setShowPass(!props.showPass)}
+                    style={{ paddingHorizontal: 12 }}
+                  >
+                    <Ionicons
+                      name={props.showPass ? "eye-off-outline" : "eye-outline"}
+                      size={20}
+                      color="#6B7280"
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {props.mode === "login" && (
+                  <TouchableOpacity
+                    onPress={() => props.setMode("recover")}
+                    style={styles.forgotBtn}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.forgotText}>Forgot password?</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
 
             <TouchableOpacity
               style={[styles.submitBtn, props.loading && { opacity: 0.7 }]}
@@ -462,10 +526,25 @@ function AuthSheetModal(props: {
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.submitBtnText}>
-                  {props.mode === "login" ? "Sign In" : "Create Account"}
+                  {props.mode === "recover"
+                    ? "Send Reset Link"
+                    : props.mode === "login"
+                    ? "Sign In"
+                    : "Create Account"}
                 </Text>
               )}
             </TouchableOpacity>
+
+            {props.mode === "recover" && (
+              <TouchableOpacity
+                onPress={() => props.setMode("login")}
+                style={{ alignItems: "center", marginTop: 14 }}
+              >
+                <Text style={{ fontSize: 13.5, fontWeight: "800", color: "#111827" }}>
+                  ← Back to Sign In
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <Text style={styles.legalNote}>
               Protected by 256-bit SSL encryption • Shopify Customer Accounts
@@ -509,12 +588,7 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     marginBottom: 10,
   },
-  welcomeSub: {
-    fontSize: 14.5,
-    color: "#4B5563",
-    textAlign: "center",
-    lineHeight: 21,
-  },
+  welcomeSub: { fontSize: 14.5, color: "#4B5563", textAlign: "center", lineHeight: 21 },
   welcomeBenefits: {
     backgroundColor: "#F8FAFC",
     borderRadius: 16,
@@ -543,11 +617,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   secondaryCtaText: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
-  guestBtn: {
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  guestBtn: { height: 44, alignItems: "center", justifyContent: "center" },
   guestBtnText: { color: "#4B5563", fontSize: 14.5, fontWeight: "800" },
 
   modalSafe: { flex: 1, backgroundColor: "#FFFFFF" },
@@ -591,7 +661,13 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: "center" },
-  segmentBtnActive: { backgroundColor: "#FFFFFF", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 3, elevation: 1 },
+  segmentBtnActive: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
+  },
   segmentText: { fontSize: 13.5, fontWeight: "700", color: "#6B7280" },
   segmentTextActive: { color: "#111827", fontWeight: "900" },
   errorBanner: {
@@ -606,6 +682,18 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   errorBannerText: { flex: 1, fontSize: 13, fontWeight: "700", color: "#DC2626" },
+  successBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+    padding: 11,
+    borderRadius: 10,
+    marginBottom: 14,
+  },
+  successBannerText: { flex: 1, fontSize: 13, fontWeight: "700", color: "#059669" },
   inputLabel: { fontSize: 13, fontWeight: "800", color: "#374151", marginBottom: 6 },
   input: {
     backgroundColor: "#F9FAFB",
@@ -626,7 +714,17 @@ const styles = StyleSheet.create({
     borderColor: "#D1D5DB",
     borderRadius: 12,
     height: 48,
-    marginBottom: 18,
+    marginBottom: 8,
+  },
+  forgotBtn: {
+    alignSelf: "flex-end",
+    paddingVertical: 4,
+    marginBottom: 14,
+  },
+  forgotText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FF6B00",
   },
   submitBtn: {
     backgroundColor: "#FF6B00",
@@ -634,7 +732,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
+    marginTop: 6,
   },
   submitBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
   legalNote: { textAlign: "center", fontSize: 12, color: "#9CA3AF", marginTop: 16 },

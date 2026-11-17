@@ -146,6 +146,43 @@ export default function AccountScreen() {
     );
   };
 
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={{ backgroundColor: "#FFFFFF", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" }}>
+          <Text style={{ fontSize: 20, fontWeight: "900", color: "#111827" }}>My Account</Text>
+        </View>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 28 }}>
+          <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+            <Ionicons name="person-outline" size={34} color="#FF6B00" />
+          </View>
+          <Text style={{ fontSize: 20, fontWeight: "900", color: "#111827", marginBottom: 8, textAlign: "center" }}>
+            Sign in to manage your account
+          </Text>
+          <Text style={{ fontSize: 14, color: "#6B7280", textAlign: "center", lineHeight: 20, marginBottom: 22 }}>
+            Sign in or create a free PICKIT account to access your profile, saved wishlist, and order tracking.
+          </Text>
+          <View style={{ flexDirection: "row", gap: 10, width: "100%" }}>
+            <TouchableOpacity
+              style={{ flex: 1, backgroundColor: "#111827", paddingVertical: 14, borderRadius: 12, alignItems: "center" }}
+              onPress={() => openAuthModal("login")}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: "#FFFFFF", fontSize: 14.5, fontWeight: "800" }}>Sign In</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex: 1, backgroundColor: "#FF6B00", paddingVertical: 14, borderRadius: 12, alignItems: "center" }}
+              onPress={() => openAuthModal("signup")}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: "#FFFFFF", fontSize: 14.5, fontWeight: "800" }}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(" ").trim() : "";
 
   return (

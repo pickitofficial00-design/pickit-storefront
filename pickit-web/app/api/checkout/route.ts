@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     return Response.json({
-      checkoutUrl: data.cartCreate.cart.checkoutUrl,
+      checkoutUrl: data?.cartCreate?.cart?.checkoutUrl,
     });
   } catch (error) {
     console.error("Checkout API error:", error);

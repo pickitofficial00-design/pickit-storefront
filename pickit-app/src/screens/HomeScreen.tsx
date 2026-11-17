@@ -319,24 +319,35 @@ export default function HomeScreen() {
             {selectedCategory === "All" ? "Top Picks For You" : selectedCategory}
           </Text>
 
-          <TouchableOpacity
-            style={[styles.filterMainBtn, activeFilterCount > 0 && styles.filterMainBtnActive]}
-            onPress={() => setFilterModalVisible(true)}
-          >
-            <Ionicons
-              name="options-outline"
-              size={15}
-              color={activeFilterCount > 0 ? "#FFFFFF" : "#111827"}
-            />
-            <Text
-              style={[
-                styles.filterMainBtnText,
-                activeFilterCount > 0 && styles.filterMainBtnTextActive,
-              ]}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            {activeFilterCount > 0 && (
+              <TouchableOpacity
+                style={styles.inlineResetBtn}
+                onPress={resetFilters}
+              >
+                <Ionicons name="refresh" size={13} color="#DC2626" />
+                <Text style={styles.inlineResetText}>Reset</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.filterMainBtn, activeFilterCount > 0 && styles.filterMainBtnActive]}
+              onPress={() => setFilterModalVisible(true)}
             >
-              Filter & Sort
-            </Text>
-          </TouchableOpacity>
+              <Ionicons
+                name="options-outline"
+                size={15}
+                color={activeFilterCount > 0 ? "#FFFFFF" : "#111827"}
+              />
+              <Text
+                style={[
+                  styles.filterMainBtnText,
+                  activeFilterCount > 0 && styles.filterMainBtnTextActive,
+                ]}
+              >
+                Filter & Sort
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -705,13 +716,19 @@ export default function HomeScreen() {
           ]}
         >
           <View style={styles.toastLeft}>
-            <View style={styles.toastCheckIcon}>
-              <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+            <View style={styles.toastThumbWrap}>
+              <Image
+                source={{ uri: toastProduct.image || "https://via.placeholder.com/100" }}
+                style={styles.toastThumb}
+              />
+              <View style={styles.toastMiniBadge}>
+                <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+              </View>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.toastTitle}>Added to Cart</Text>
               <Text style={styles.toastSub} numberOfLines={1}>
-                {toastProduct.name} • ${toastProduct.price.toFixed(2)}
+                {toastProduct.name}
               </Text>
             </View>
           </View>
@@ -1260,6 +1277,33 @@ const styles = StyleSheet.create({
   addBtnText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
 
   /* In-App Floating Cart Popup Banner */
+  inlineResetBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  inlineResetText: { fontSize: 11.5, fontWeight: "800", color: "#DC2626" },
+  toastThumbWrap: { position: "relative" },
+  toastThumb: { width: 40, height: 40, borderRadius: 9, backgroundColor: "#FFFFFF" },
+  toastMiniBadge: {
+    position: "absolute",
+    bottom: -3,
+    right: -3,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#059669",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#111827",
+  },
   toastContainer: {
     position: "absolute",
     bottom: 14,

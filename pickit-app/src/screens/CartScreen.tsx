@@ -21,7 +21,7 @@ const FREE_SHIPPING_THRESHOLD = 50;
 
 export default function CartScreen() {
   const navigation = useNavigation<any>();
-  const { items, subtotal, totalCount, updateQuantity, removeFromCart } = useCart();
+  const { items, subtotal, totalCount, updateQuantity, removeFromCart, recordCompletedOrder } = useCart();
   const [checkingOut, setCheckingOut] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [orderCompleted, setOrderCompleted] = useState(false);
@@ -58,7 +58,7 @@ export default function CartScreen() {
 
   const handleCloseCheckout = () => {
     if (orderCompleted) {
-      items.forEach((item) => removeFromCart(item.product.id));
+      recordCompletedOrder();
       setOrderCompleted(false);
     }
     setCheckoutUrl(null);
@@ -67,14 +67,14 @@ export default function CartScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Your Bag ({totalCount})</Text>
+        <Text style={styles.headerTitle}>Shopping Cart ({totalCount})</Text>
         <Text style={styles.headerSecure}>🔒 256-Bit SSL Encrypted</Text>
       </View>
 
       {items.length === 0 ? (
         <View style={styles.emptyBox}>
           <Text style={styles.emptyIcon}>🛍️</Text>
-          <Text style={styles.emptyTitle}>Your PICKIT bag is empty</Text>
+          <Text style={styles.emptyTitle}>Your PICKIT cart is empty</Text>
           <Text style={styles.emptySub}>
             Explore verified products with fast US shipping and 30-day returns.
           </Text>

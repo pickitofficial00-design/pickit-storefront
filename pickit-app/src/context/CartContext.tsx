@@ -8,8 +8,18 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface OrderRecord {
+  id: string;
+  orderNumber: string;
+  date: string;
+  status: "Order Confirmed" | "Processing" | "Shipped";
+  items: CartItem[];
+  total: number;
+}
+
 interface CartContextType {
   items: CartItem[];
+  orders: OrderRecord[];
   wishlist: Product[];
   totalCount: number;
   subtotal: number;
@@ -17,15 +27,18 @@ interface CartContextType {
   updateQuantity: (productId: string, qty: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
+  recordCompletedOrder: () => void;
   toggleWishlist: (product: Product) => void;
   isWishlisted: (productId: string) => boolean;
 }
 
 const CART_KEY = "@pickit_cart_v1";
+const ORDERS_KEY = "@pickit_orders_v1";
 const WISHLIST_KEY = "@pickit_wishlist_v1";
 
 const CartContext = createContext<CartContextType>({
   items: [],
+  orders: [],
   wishlist: [],
   totalCount: 0,
   subtotal: 0,
@@ -33,23 +46,27 @@ const CartContext = createContext<CartContextType>({
   updateQuantity: () => {},
   removeFromCart: () => {},
   clearCart: () => {},
+  recordCompletedOrder: () => {},
   toggleWishlist: () => {},
   isWishlisted: () => false,
 });
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const [savedCart, savedWish] = await Promise.all([
+        const [savedCart, savedOrders, savedWish] = await Promise.all([
           AsyncStorage.getItem(CART_KEY),
+          AsyncStorage.getItem(ORDERS_KEY),
           AsyncStorage.getItem(WISHLIST_KEY),
         ]);
         if (savedCart) setItems(JSON.parse(savedCart));
+        if (savedOrders) setOrders(JSON.parse(savedOrders));
         if (savedWish) setWishlist(JSON.parse(savedWish));
       } catch {}
       setHydrated(true);
@@ -59,6 +76,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (hydrated) AsyncStorage.setItem(CART_KEY, JSON.stringify(items)).catch(() => {});
   }, [items, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) AsyncStorage.setItem(ORDERS_KEY, JSON.stringify(orders)).catch(() => {});
+  }, [orders, hydrated]);
 
   useEffect(() => {
     if (hydrated) AsyncStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist)).catch(() => {});
@@ -94,6 +115,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setItems([]);
 
+  const recordCompletedOrder = () => {
+    if (items.length === 0) return;
+    const sub = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+    const shipping = sub >= 35 ? 0 : 5.99;
+    const newOrder: OrderRecord = {
+      id: `ord_${Date.now()}`,
+      orderNumber: `PK-${Math.floor(100000 + Math.random() * 900000)}`,
+      date: new Date().toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      status: "Order Confirmed",
+      items: [...items],
+      total: sub + shipping,
+    };
+    setOrders((prev) => [newOrder, ...prev]);
+    setItems([]);
+  };
+
   const toggleWishlist = (product: Product) => {
     Haptics.selectionAsync();
     setWishlist((prev) =>
@@ -112,6 +153,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     <CartContext.Provider
       value={{
         items,
+        orders,
         wishlist,
         totalCount,
         subtotal,
@@ -119,6 +161,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateQuantity,
         removeFromCart,
         clearCart,
+        recordCompletedOrder,
         toggleWishlist,
         isWishlisted,
       }}

@@ -8,18 +8,24 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Product } from "../services/storeApi";
 import { useCart } from "../context/CartContext";
+
+// Session-level memory: stays "Added to Cart" until the app closes or user taps again to remove
+const sessionAddedProducts = new Set<string>();
 
 export default function ProductScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const product: Product = route.params?.product;
 
-  const { addToCart, toggleWishlist, isWishlisted } = useCart();
+  const { items, addToCart, removeFromCart, toggleWishlist, isWishlisted } = useCart();
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
+  const [isAddedSession, setIsAddedSession] = useState<boolean>(
+    () => !!product && (sessionAddedProducts.has(product.id) || items.some((i) => i.product.id === product.id))
+  );
 
   if (!product) {
     return (
@@ -34,10 +40,25 @@ export default function ProductScreen() {
   const originalPrice =
     product.discount > 0 ? product.price / (1 - product.discount / 100) : null;
 
-  const handleAdd = () => {
-    addToCart(product, qty);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1400);
+  const handleToggleCart = () => {
+    if (isAddedSession) {
+      sessionAddedProducts.delete(product.id);
+      removeFromCart(product.id);
+      setIsAddedSession(false);
+    } else {
+      sessionAddedProducts.add(product.id);
+      addToCart(product, qty);
+      setIsAddedSession(true);
+    }
+  };
+
+  const handleBuyNow = () => {
+    if (!isAddedSession) {
+      sessionAddedProducts.add(product.id);
+      addToCart(product, qty);
+      setIsAddedSession(true);
+    }
+    navigation.navigate("Cart");
   };
 
   return (
@@ -58,22 +79,30 @@ export default function ProductScreen() {
             style={styles.wishlistBtn}
             onPress={() => toggleWishlist(product)}
           >
-            <Text style={{ fontSize: 20 }}>{saved ? "❤️" : "🤍"}</Text>
+            <Ionicons
+              name={saved ? "heart" : "heart-outline"}
+              size={22}
+              color={saved ? "#EF4444" : "#111827"}
+            />
           </TouchableOpacity>
         </View>
 
         <View style={styles.infoCard}>
           <View style={styles.topMetaRow}>
-            <Text style={styles.brandBadge}>✓ {product.brand || "PICKIT VERIFIED"}</Text>
+            <View style={styles.brandRow}>
+              <Ionicons name="checkmark-circle" size={14} color="#FF6B00" />
+              <Text style={styles.brandBadge}>{product.brand || "PICKIT ASSURED"}</Text>
+            </View>
             <Text style={styles.stockBadge}>● In Stock • Ready to Ship</Text>
           </View>
 
           <Text style={styles.title}>{product.name}</Text>
 
           <View style={styles.ratingRow}>
-            <Text style={styles.stars}>★★★★★</Text>
-            <Text style={styles.ratingNum}>{rating}</Text>
-            <Text style={styles.reviewCount}>(128 Verified US Buyers)</Text>
+            <View style={styles.greenRatingPill}>
+              <Text style={styles.greenRatingText}>{rating} ★</Text>
+            </View>
+            <Text style={styles.reviewCount}>Verified US Buyer Rating</Text>
           </View>
 
           <View style={styles.priceBox}>
@@ -83,7 +112,7 @@ export default function ProductScreen() {
             )}
             <View style={styles.freeShipTag}>
               <Text style={styles.freeShipText}>
-                {product.price >= 50 ? "FREE US SHIPPING" : "FREE SHIPPING $50+"}
+                {product.price >= 35 ? "FREE US SHIPPING" : "FREE SHIPPING $35+"}
               </Text>
             </View>
           </View>
@@ -95,35 +124,41 @@ export default function ProductScreen() {
                 style={styles.stepBtn}
                 onPress={() => setQty((q) => Math.max(1, q - 1))}
               >
-                <Text style={styles.stepBtnText}>−</Text>
+                <Ionicons name="remove" size={18} color="#111827" />
               </TouchableOpacity>
               <Text style={styles.qtyVal}>{qty}</Text>
               <TouchableOpacity
                 style={styles.stepBtn}
                 onPress={() => setQty((q) => q + 1)}
               >
-                <Text style={styles.stepBtnText}>+</Text>
+                <Ionicons name="add" size={18} color="#111827" />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.trustGrid}>
             <View style={styles.trustItem}>
-              <Text style={styles.trustIcon}>🚚</Text>
+              <View style={styles.trustIconBox}>
+                <Ionicons name="cube-outline" size={20} color="#FF6B00" />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.trustTitle}>Fast US Tracked Delivery</Text>
                 <Text style={styles.trustSub}>Dispatched within 24–48 hrs with live tracking</Text>
               </View>
             </View>
             <View style={styles.trustItem}>
-              <Text style={styles.trustIcon}>🔄</Text>
+              <View style={styles.trustIconBox}>
+                <Ionicons name="refresh-circle-outline" size={21} color="#FF6B00" />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.trustTitle}>30-Day Hassle-Free Returns</Text>
                 <Text style={styles.trustSub}>Full refund guarantee if you are not 100% satisfied</Text>
               </View>
             </View>
             <View style={styles.trustItem}>
-              <Text style={styles.trustIcon}>🔒</Text>
+              <View style={styles.trustIconBox}>
+                <Ionicons name="lock-closed-outline" size={20} color="#FF6B00" />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.trustTitle}>256-Bit SSL Encrypted Checkout</Text>
                 <Text style={styles.trustSub}>Protected by Shopify Payments, Apple Pay & PayPal</Text>
@@ -141,20 +176,27 @@ export default function ProductScreen() {
 
       <View style={styles.bottomBar}>
         <TouchableOpacity
-          style={[styles.primaryBtn, added && styles.addedBtn]}
-          onPress={handleAdd}
+          style={[styles.cartToggleBtn, isAddedSession && styles.addedToggleBtn]}
+          onPress={handleToggleCart}
+          activeOpacity={0.85}
         >
-          <Text style={styles.primaryBtnText}>
-            {added
-              ? "✓ Added to Your Bag"
-              : `Add to Bag  •  $${(product.price * qty).toFixed(2)}`}
+          <Ionicons
+            name={isAddedSession ? "checkmark-circle" : "cart-outline"}
+            size={19}
+            color="#FFFFFF"
+          />
+          <Text style={styles.cartToggleText}>
+            {isAddedSession ? "Added to Cart" : "Add to Cart"}
           </Text>
         </TouchableOpacity>
+
         <TouchableOpacity
-          style={styles.bagIconBtn}
-          onPress={() => navigation.navigate("MainTabs", { screen: "Cart" })}
+          style={styles.buyNowBtn}
+          onPress={handleBuyNow}
+          activeOpacity={0.85}
         >
-          <Text style={{ fontSize: 18 }}>🛒</Text>
+          <Ionicons name="flash" size={18} color="#FFFFFF" />
+          <Text style={styles.buyNowText}>Buy Now</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -171,7 +213,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 14,
     left: 14,
-    backgroundColor: "#FF6B00",
+    backgroundColor: "#059669",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
@@ -200,13 +242,14 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   topMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   brandBadge: { fontSize: 11, fontWeight: "800", color: "#FF6B00", textTransform: "uppercase" },
   stockBadge: { fontSize: 12, fontWeight: "700", color: "#059669" },
-  title: { fontSize: 22, fontWeight: "900", color: "#111827", lineHeight: 28, marginBottom: 8 },
-  ratingRow: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
-  stars: { color: "#F59E0B", fontSize: 14, letterSpacing: 1 },
-  ratingNum: { fontSize: 13, fontWeight: "800", color: "#111827", marginLeft: 6 },
-  reviewCount: { fontSize: 12, color: "#6B7280", marginLeft: 6 },
+  title: { fontSize: 21, fontWeight: "900", color: "#111827", lineHeight: 27, marginBottom: 8 },
+  ratingRow: { flexDirection: "row", alignItems: "center", marginBottom: 14, gap: 8 },
+  greenRatingPill: { backgroundColor: "#15803D", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5 },
+  greenRatingText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
+  reviewCount: { fontSize: 12.5, color: "#6B7280", fontWeight: "600" },
   priceBox: { flexDirection: "row", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 10 },
   price: { fontSize: 28, fontWeight: "900", color: "#111827" },
   strikePrice: { fontSize: 17, color: "#9CA3AF", textDecorationLine: "line-through", fontWeight: "600" },
@@ -225,7 +268,6 @@ const styles = StyleSheet.create({
   qtyLabel: { fontSize: 15, fontWeight: "700", color: "#111827" },
   stepper: { flexDirection: "row", alignItems: "center", backgroundColor: "#F3F4F6", borderRadius: 10 },
   stepBtn: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
-  stepBtnText: { fontSize: 20, fontWeight: "700", color: "#111827" },
   qtyVal: { fontSize: 16, fontWeight: "800", color: "#111827", paddingHorizontal: 14 },
   trustGrid: {
     backgroundColor: "#F8FAFC",
@@ -237,36 +279,50 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   trustItem: { flexDirection: "row", alignItems: "center", gap: 12 },
-  trustIcon: { fontSize: 20 },
+  trustIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFF7ED",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   trustTitle: { fontSize: 13, fontWeight: "800", color: "#111827" },
   trustSub: { fontSize: 12, color: "#6B7280", marginTop: 1 },
   descHeading: { fontSize: 16, fontWeight: "800", color: "#111827", marginBottom: 8 },
   descText: { fontSize: 14, color: "#4B5563", lineHeight: 22 },
   bottomBar: {
     flexDirection: "row",
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 12,
     backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
     gap: 10,
   },
-  primaryBtn: {
+  cartToggleBtn: {
     flex: 1,
+    flexDirection: "row",
+    gap: 6,
+    backgroundColor: "#111827",
+    borderRadius: 14,
+    height: 50,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addedToggleBtn: {
+    backgroundColor: "#059669",
+  },
+  cartToggleText: { color: "#FFFFFF", fontSize: 14.5, fontWeight: "900" },
+  buyNowBtn: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 6,
     backgroundColor: "#FF6B00",
     borderRadius: 14,
-    height: 52,
+    height: 50,
     alignItems: "center",
     justifyContent: "center",
   },
-  addedBtn: { backgroundColor: "#059669" },
-  primaryBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
-  bagIconBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "#111827",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  buyNowText: { color: "#FFFFFF", fontSize: 14.5, fontWeight: "900" },
 });

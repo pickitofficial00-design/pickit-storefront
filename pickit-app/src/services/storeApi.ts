@@ -1,8 +1,22 @@
 // Single API adapter for PICKIT.
-// Currently talks to your pickit-web API (which connects to Shopify).
-// Automatically paginates through all pages so 100+ products load seamlessly.
+// Automatically paginates through all pages and preserves full image galleries & variants.
 
 const API_BASE_URL = "https://pickit-storefront.vercel.app";
+
+export interface ProductVariant {
+  id: string;
+  title: string;
+  price: number;
+  compareAtPrice?: number | null;
+  availableForSale: boolean;
+  image?: string | null;
+  selectedOptions: { name: string; value: string }[];
+}
+
+export interface ProductOption {
+  name: string;
+  values: string[];
+}
 
 export interface Product {
   id: string;
@@ -18,7 +32,10 @@ export interface Product {
   discount: number;
   category: string;
   image: string;
+  images?: string[];
   imageAlt: string;
+  options?: ProductOption[];
+  variants?: ProductVariant[];
 }
 
 export interface ProductsResponse {
@@ -41,12 +58,10 @@ async function fetchProductPage(cursor?: string | null): Promise<ProductsRespons
 }
 
 export async function fetchProducts(cursor?: string | null): Promise<ProductsResponse> {
-  // If a specific cursor is passed, fetch just that page
   if (cursor) {
     return fetchProductPage(cursor);
   }
 
-  // Otherwise, fetch all pages so all 100+ Shopify products appear across Home, Categories & Search
   const allProducts: Product[] = [];
   const seenIds = new Set<string>();
   let nextCursor: string | null = null;

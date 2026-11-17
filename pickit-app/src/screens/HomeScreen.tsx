@@ -19,6 +19,31 @@ import { useCart } from "../context/CartContext";
 
 type SortOption = "featured" | "price_asc" | "price_desc" | "rating";
 
+function getCategoryMeta(name: string): {
+  icon: keyof typeof Ionicons.glyphMap;
+  shortLabel: string;
+} {
+  const key = name.toLowerCase();
+  if (key === "all") return { icon: "grid", shortLabel: "All Deals" };
+  if (key.includes("phone") || key.includes("mobile"))
+    return { icon: "phone-portrait", shortLabel: "Mobiles & Gear" };
+  if (key.includes("tech") || key.includes("gadget") || key.includes("electronic"))
+    return { icon: "hardware-chip", shortLabel: "Smart Tech" };
+  if (key.includes("desk") || key.includes("office") || key.includes("setup"))
+    return { icon: "desktop", shortLabel: "Desk Setup" };
+  if (key.includes("game") || key.includes("gaming"))
+    return { icon: "game-controller", shortLabel: "Gaming" };
+  if (key.includes("travel") || key.includes("bag"))
+    return { icon: "airplane", shortLabel: "Travel" };
+  if (key.includes("fitness") || key.includes("outdoor") || key.includes("sport"))
+    return { icon: "fitness", shortLabel: "Fitness" };
+  if (key.includes("home") || key.includes("kitchen"))
+    return { icon: "home", shortLabel: "Home & Living" };
+  if (key.includes("fashion") || key.includes("wear") || key.includes("watch"))
+    return { icon: "watch", shortLabel: "Fashion" };
+  return { icon: "pricetag", shortLabel: name };
+}
+
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { addToCart, totalCount, toggleWishlist, isWishlisted } = useCart();
@@ -85,67 +110,116 @@ export default function HomeScreen() {
 
   const renderHeader = () => (
     <View>
-      <View style={styles.trustBar}>
-        <Text style={styles.trustText}>Free Tracked Shipping on Orders $35+  •  30-Day Easy Returns</Text>
+      {/* Flipkart / Amazon style Visual Category Icon Strip */}
+      <View style={styles.catSection}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.catRow}
+        >
+          {categories.map((cat) => {
+            const active = selectedCategory === cat;
+            const meta = getCategoryMeta(cat);
+            return (
+              <TouchableOpacity
+                key={cat}
+                onPress={() => setSelectedCategory(cat)}
+                style={styles.catTile}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.catIconCircle, active && styles.catIconCircleActive]}>
+                  <Ionicons
+                    name={meta.icon}
+                    size={21}
+                    color={active ? "#FFFFFF" : "#111827"}
+                  />
+                </View>
+                <Text
+                  style={[styles.catLabel, active && styles.catLabelActive]}
+                  numberOfLines={1}
+                >
+                  {meta.shortLabel}
+                </Text>
+                <View style={[styles.catIndicator, active && styles.catIndicatorActive]} />
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
+      {/* Hero Banner */}
       <View style={styles.heroCard}>
         <View style={styles.heroBadge}>
+          <Ionicons name="shield-checkmark" size={12} color="#FF8A34" />
           <Text style={styles.heroBadgeText}>VERIFIED US STOREFRONT</Text>
         </View>
         <Text style={styles.heroTitle}>Smart Picks. Everyday Value.</Text>
         <Text style={styles.heroSubtitle}>
-          Curated essentials backed by our 30-Day Buyer Protection & fast tracked US delivery.
+          Quality-checked essentials backed by 30-Day Buyer Protection & fast tracked delivery.
         </Text>
         <View style={styles.heroStatsRow}>
           <View style={styles.heroStat}>
-            <Text style={styles.heroStatValue}>4.9★</Text>
+            <Text style={styles.heroStatValue}>4.9 ★</Text>
             <Text style={styles.heroStatLabel}>Verified Rating</Text>
           </View>
           <View style={styles.heroDivider} />
           <View style={styles.heroStat}>
             <Text style={styles.heroStatValue}>2–5 Days</Text>
-            <Text style={styles.heroStatLabel}>US Delivery</Text>
+            <Text style={styles.heroStatLabel}>Tracked Delivery</Text>
           </View>
           <View style={styles.heroDivider} />
           <View style={styles.heroStat}>
-            <Text style={styles.heroStatValue}>100%</Text>
-            <Text style={styles.heroStatLabel}>Secure Pay</Text>
+            <Text style={styles.heroStatValue}>30-Day</Text>
+            <Text style={styles.heroStatLabel}>Easy Returns</Text>
           </View>
         </View>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.catRow}
-      >
-        {categories.map((cat) => {
-          const active = selectedCategory === cat;
-          return (
-            <TouchableOpacity
-              key={cat}
-              onPress={() => setSelectedCategory(cat)}
-              style={[styles.catPill, active && styles.catPillActive]}
-            >
-              <Text style={[styles.catText, active && styles.catTextActive]}>{cat}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      {/* Amazon / Flipkart Reliability & Guarantees Bar */}
+      <View style={styles.trustGrid}>
+        <View style={styles.trustItem}>
+          <View style={styles.trustIconBox}>
+            <Ionicons name="cube-outline" size={17} color="#FF6B00" />
+          </View>
+          <Text style={styles.trustItemTitle}>Free Delivery</Text>
+          <Text style={styles.trustItemSub}>Orders $35+</Text>
+        </View>
+        <View style={styles.trustItem}>
+          <View style={styles.trustIconBox}>
+            <Ionicons name="refresh-circle-outline" size={18} color="#FF6B00" />
+          </View>
+          <Text style={styles.trustItemTitle}>30-Day Return</Text>
+          <Text style={styles.trustItemSub}>Easy refund</Text>
+        </View>
+        <View style={styles.trustItem}>
+          <View style={styles.trustIconBox}>
+            <Ionicons name="lock-closed-outline" size={17} color="#FF6B00" />
+          </View>
+          <Text style={styles.trustItemTitle}>Secure Pay</Text>
+          <Text style={styles.trustItemSub}>Shopify SSL</Text>
+        </View>
+        <View style={styles.trustItem}>
+          <View style={styles.trustIconBox}>
+            <Ionicons name="ribbon-outline" size={17} color="#FF6B00" />
+          </View>
+          <Text style={styles.trustItemTitle}>Top Quality</Text>
+          <Text style={styles.trustItemSub}>100% Tested</Text>
+        </View>
+      </View>
 
+      {/* Section Title & Sort Chips */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
-          {selectedCategory === "All" ? "Featured Products" : selectedCategory}{" "}
+          {selectedCategory === "All" ? "Top Picks For You" : selectedCategory}{" "}
           <Text style={styles.countText}>({filteredProducts.length})</Text>
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {(
             [
               { id: "featured", label: "Featured" },
-              { id: "price_asc", label: "Price: Low" },
-              { id: "price_desc", label: "Price: High" },
-              { id: "rating", label: "Top Rated" },
+              { id: "price_asc", label: "Price: Low to High" },
+              { id: "price_desc", label: "Price: High to Low" },
+              { id: "rating", label: "Customer Top Rated" },
             ] as { id: SortOption; label: string }[]
           ).map((s) => (
             <TouchableOpacity
@@ -182,7 +256,7 @@ export default function HomeScreen() {
           />
           {item.discount > 0 && (
             <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>SAVE {item.discount}%</Text>
+              <Text style={styles.discountText}>{item.discount}% OFF</Text>
             </View>
           )}
           <TouchableOpacity
@@ -199,16 +273,26 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.cardBody}>
-          <Text style={styles.brandText} numberOfLines={1}>
-            {item.brand || "PICKIT VERIFIED"}
-          </Text>
+          <View style={styles.assuredRow}>
+            <Text style={styles.brandText} numberOfLines={1}>
+              {item.brand || "PICKIT"}
+            </Text>
+            <View style={styles.assuredPill}>
+              <Ionicons name="checkmark-circle" size={11} color="#FF6B00" />
+              <Text style={styles.assuredText}>Assured</Text>
+            </View>
+          </View>
+
           <Text style={styles.productName} numberOfLines={2}>
             {item.name}
           </Text>
 
+          {/* Flipkart-style green rating badge + Free Delivery tag */}
           <View style={styles.ratingRow}>
-            <Text style={styles.starText}>★ {rating}</Text>
-            <Text style={styles.verifiedTag}>• In Stock</Text>
+            <View style={styles.greenRatingBadge}>
+              <Text style={styles.greenRatingText}>{rating} ★</Text>
+            </View>
+            <Text style={styles.deliveryTag}>Free Delivery</Text>
           </View>
 
           <View style={styles.priceRow}>
@@ -307,7 +391,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8FAFC" },
+  container: { flex: 1, backgroundColor: "#F1F5F9" },
   topHeader: {
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
@@ -327,12 +411,8 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: -0.8,
   },
-  wordmarkPick: {
-    color: "#111827",
-  },
-  wordmarkIt: {
-    color: "#FF6B00",
-  },
+  wordmarkPick: { color: "#111827" },
+  wordmarkIt: { color: "#FF6B00" },
   headerBagBtn: {
     backgroundColor: "#111827",
     paddingHorizontal: 13,
@@ -359,67 +439,145 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F3F4F6",
-    borderRadius: 999,
-    paddingHorizontal: 14,
+    borderRadius: 12,
+    paddingHorizontal: 12,
     height: 42,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   searchInput: { flex: 1, fontSize: 14, color: "#111827" },
-  trustBar: {
-    backgroundColor: "#111827",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    alignItems: "center",
+
+  /* Flipkart / Amazon Visual Category Icon Bar */
+  catSection: {
+    backgroundColor: "#FFFFFF",
+    paddingTop: 12,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
-  trustText: { color: "#FFFFFF", fontSize: 11, fontWeight: "700", letterSpacing: 0.2 },
+  catRow: {
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  catTile: {
+    alignItems: "center",
+    width: 78,
+    paddingHorizontal: 4,
+  },
+  catIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+  },
+  catIconCircleActive: {
+    backgroundColor: "#FF6B00",
+    borderColor: "#FF6B00",
+  },
+  catLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#374151",
+    textAlign: "center",
+  },
+  catLabelActive: {
+    color: "#FF6B00",
+    fontWeight: "800",
+  },
+  catIndicator: {
+    height: 3,
+    width: 28,
+    borderRadius: 2,
+    backgroundColor: "transparent",
+    marginTop: 6,
+  },
+  catIndicatorActive: {
+    backgroundColor: "#FF6B00",
+  },
+
+  /* Hero Card */
   heroCard: {
-    margin: 14,
+    marginHorizontal: 12,
+    marginTop: 12,
     backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 18,
+    borderRadius: 16,
+    padding: 16,
     shadowColor: "#000",
     shadowOpacity: 0.08,
-    shadowRadius: 10,
+    shadowRadius: 8,
     elevation: 3,
   },
   heroBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     alignSelf: "flex-start",
     backgroundColor: "rgba(255, 107, 0, 0.18)",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   heroBadgeText: { color: "#FF8A34", fontSize: 10, fontWeight: "800", letterSpacing: 0.6 },
-  heroTitle: { color: "#FFFFFF", fontSize: 22, fontWeight: "900", marginBottom: 6 },
-  heroSubtitle: { color: "#D1D5DB", fontSize: 13, lineHeight: 19, marginBottom: 14 },
+  heroTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "900", marginBottom: 4 },
+  heroSubtitle: { color: "#D1D5DB", fontSize: 12.5, lineHeight: 18, marginBottom: 12 },
   heroStatsRow: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#1F2937",
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
   },
   heroStat: { flex: 1, alignItems: "center" },
-  heroStatValue: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
-  heroStatLabel: { color: "#9CA3AF", fontSize: 11, marginTop: 2 },
-  heroDivider: { width: 1, height: 24, backgroundColor: "#374151" },
-  catRow: { paddingHorizontal: 14, paddingBottom: 10, gap: 8 },
-  catPill: {
+  heroStatValue: { color: "#FFFFFF", fontSize: 13.5, fontWeight: "800" },
+  heroStatLabel: { color: "#9CA3AF", fontSize: 10.5, marginTop: 1 },
+  heroDivider: { width: 1, height: 22, backgroundColor: "#374151" },
+
+  /* 4-Column Store Reliability Strip */
+  trustGrid: {
+    flexDirection: "row",
     backgroundColor: "#FFFFFF",
+    marginHorizontal: 12,
+    marginTop: 10,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    marginRight: 8,
   },
-  catPillActive: { backgroundColor: "#FF6B00", borderColor: "#FF6B00" },
-  catText: { color: "#374151", fontSize: 13, fontWeight: "700" },
-  catTextActive: { color: "#FFFFFF" },
-  sectionHeader: { paddingHorizontal: 14, paddingTop: 4, paddingBottom: 10 },
-  sectionTitle: { fontSize: 17, fontWeight: "800", color: "#111827", marginBottom: 8 },
-  countText: { color: "#6B7280", fontWeight: "600", fontSize: 14 },
+  trustItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  trustIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#FFF7ED",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  trustItemTitle: {
+    fontSize: 10.5,
+    fontWeight: "800",
+    color: "#111827",
+  },
+  trustItemSub: {
+    fontSize: 9.5,
+    color: "#6B7280",
+    marginTop: 1,
+  },
+
+  sectionHeader: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
+  sectionTitle: { fontSize: 16.5, fontWeight: "900", color: "#111827", marginBottom: 8 },
+  countText: { color: "#6B7280", fontWeight: "600", fontSize: 13.5 },
   sortChip: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
@@ -433,29 +591,29 @@ const styles = StyleSheet.create({
   sortChipText: { fontSize: 12, color: "#4B5563", fontWeight: "600" },
   sortChipTextActive: { color: "#FF6B00", fontWeight: "800" },
   listContent: { paddingBottom: 24 },
-  gridRow: { paddingHorizontal: 14, justifyContent: "space-between", marginBottom: 12 },
+  gridRow: { paddingHorizontal: 12, justifyContent: "space-between", marginBottom: 10 },
   card: {
-    width: "48.2%",
+    width: "48.5%",
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#E5E7EB",
     shadowColor: "#000",
     shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowRadius: 5,
     elevation: 2,
   },
-  imageWrap: { width: "100%", height: 155, backgroundColor: "#F3F4F6", position: "relative" },
+  imageWrap: { width: "100%", height: 155, backgroundColor: "#F8FAFC", position: "relative" },
   productImage: { width: "100%", height: "100%" },
   discountBadge: {
     position: "absolute",
     top: 8,
     left: 8,
-    backgroundColor: "#FF6B00",
+    backgroundColor: "#059669",
     paddingHorizontal: 7,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 5,
   },
   discountText: { color: "#FFFFFF", fontSize: 10, fontWeight: "800" },
   heartBtn: {
@@ -469,12 +627,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cardBody: { padding: 11 },
-  brandText: { fontSize: 10, fontWeight: "800", color: "#6B7280", textTransform: "uppercase", marginBottom: 3 },
+  cardBody: { padding: 10 },
+  assuredRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 3,
+  },
+  brandText: { fontSize: 10, fontWeight: "800", color: "#6B7280", textTransform: "uppercase", flex: 1 },
+  assuredPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    backgroundColor: "#FFF7ED",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  assuredText: { fontSize: 9.5, fontWeight: "800", color: "#FF6B00" },
   productName: { fontSize: 13.5, fontWeight: "700", color: "#111827", lineHeight: 18, minHeight: 36 },
-  ratingRow: { flexDirection: "row", alignItems: "center", marginTop: 6, marginBottom: 8 },
-  starText: { fontSize: 12, fontWeight: "800", color: "#F59E0B" },
-  verifiedTag: { fontSize: 11, color: "#059669", fontWeight: "700", marginLeft: 4 },
+  ratingRow: { flexDirection: "row", alignItems: "center", marginTop: 6, marginBottom: 8, gap: 6 },
+  greenRatingBadge: {
+    backgroundColor: "#15803D",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  greenRatingText: { color: "#FFFFFF", fontSize: 10.5, fontWeight: "800" },
+  deliveryTag: { fontSize: 11, color: "#374151", fontWeight: "700" },
   priceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   priceText: { fontSize: 16, fontWeight: "900", color: "#111827" },
   addBtn: {

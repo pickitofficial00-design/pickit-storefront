@@ -9,8 +9,22 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { fetchProducts, Product } from "../services/storeApi";
+
+function getCategoryIcon(name: string): keyof typeof Ionicons.glyphMap {
+  const key = name.toLowerCase();
+  if (key.includes("phone") || key.includes("mobile")) return "phone-portrait-outline";
+  if (key.includes("tech") || key.includes("gadget") || key.includes("electronic")) return "hardware-chip-outline";
+  if (key.includes("desk") || key.includes("office") || key.includes("setup")) return "desktop-outline";
+  if (key.includes("game") || key.includes("gaming")) return "game-controller-outline";
+  if (key.includes("travel") || key.includes("bag")) return "airplane-outline";
+  if (key.includes("fitness") || key.includes("outdoor") || key.includes("sport")) return "fitness-outline";
+  if (key.includes("home") || key.includes("kitchen")) return "home-outline";
+  if (key.includes("fashion") || key.includes("wear") || key.includes("watch")) return "watch-outline";
+  return "layers-outline";
+}
 
 export default function CategoriesScreen() {
   const navigation = useNavigation<any>();
@@ -68,7 +82,13 @@ export default function CategoriesScreen() {
                   style={[styles.catCard, selected === "All" && styles.catCardActive]}
                   onPress={() => setSelected("All")}
                 >
-                  <Text style={styles.catEmoji}>✨</Text>
+                  <View style={[styles.iconBadge, selected === "All" && styles.iconBadgeActive]}>
+                    <Ionicons
+                      name={selected === "All" ? "sparkles" : "sparkles-outline"}
+                      size={20}
+                      color={selected === "All" ? "#FFFFFF" : "#FF6B00"}
+                    />
+                  </View>
                   <Text style={[styles.catName, selected === "All" && { color: "#FFFFFF" }]}>
                     All Picks
                   </Text>
@@ -85,7 +105,13 @@ export default function CategoriesScreen() {
                       style={[styles.catCard, active && styles.catCardActive]}
                       onPress={() => setSelected(g.name)}
                     >
-                      <Text style={styles.catEmoji}>📦</Text>
+                      <View style={[styles.iconBadge, active && styles.iconBadgeActive]}>
+                        <Ionicons
+                          name={getCategoryIcon(g.name)}
+                          size={20}
+                          color={active ? "#FFFFFF" : "#FF6B00"}
+                        />
+                      </View>
                       <Text
                         style={[styles.catName, active && { color: "#FFFFFF" }]}
                         numberOfLines={1}
@@ -120,7 +146,7 @@ export default function CategoriesScreen() {
                 </Text>
                 <Text style={styles.price}>${item.price.toFixed(2)}</Text>
               </View>
-              <Text style={styles.arrow}>›</Text>
+              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
             </TouchableOpacity>
           )}
         />
@@ -141,9 +167,9 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 21, fontWeight: "900", color: "#111827" },
   headerSub: { fontSize: 12.5, color: "#6B7280", marginTop: 2 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  catGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 },
+  catGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 10, marginBottom: 16 },
   catCard: {
-    width: "48%",
+    width: "48.5%",
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
     padding: 14,
@@ -151,7 +177,18 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   catCardActive: { backgroundColor: "#111827", borderColor: "#111827" },
-  catEmoji: { fontSize: 20, marginBottom: 6 },
+  iconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: "#FFF7ED",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  iconBadgeActive: {
+    backgroundColor: "#FF6B00",
+  },
   catName: { fontSize: 14, fontWeight: "800", color: "#111827" },
   catCount: { fontSize: 12, color: "#6B7280", marginTop: 2 },
   sectionTitle: { fontSize: 16, fontWeight: "800", color: "#111827" },
@@ -169,5 +206,4 @@ const styles = StyleSheet.create({
   brand: { fontSize: 10, fontWeight: "800", color: "#FF6B00", textTransform: "uppercase" },
   name: { fontSize: 14, fontWeight: "700", color: "#111827", marginVertical: 3 },
   price: { fontSize: 15, fontWeight: "900", color: "#111827" },
-  arrow: { fontSize: 24, color: "#9CA3AF", paddingHorizontal: 8 },
 });

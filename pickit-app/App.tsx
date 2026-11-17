@@ -1,11 +1,11 @@
 import React from "react";
-import { Platform, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { CartProvider, useCart } from "./src/context/CartContext";
 import HomeScreen from "./src/screens/HomeScreen";
 import CategoriesScreen from "./src/screens/CategoriesScreen";
@@ -29,8 +29,26 @@ const PickitTheme = {
   },
 };
 
+function TabIconPill({
+  name,
+  color,
+  focused,
+}: {
+  name: keyof typeof Ionicons.glyphMap;
+  color: string;
+  focused: boolean;
+}) {
+  return (
+    <View style={[styles.iconPill, focused && styles.iconPillActive]}>
+      <Ionicons name={name} size={22} color={color} />
+    </View>
+  );
+}
+
 function MainTabs() {
   const { orders, wishlist } = useCart();
+  const insets = useSafeAreaInsets();
+  const bottomPad = Math.max(insets.bottom, 8);
 
   return (
     <Tab.Navigator
@@ -38,20 +56,30 @@ function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: "#FF6B00",
         tabBarInactiveTintColor: "#64748B",
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "800", marginTop: 2 },
+        tabBarIconStyle: {
+          width: 48,
+          height: 32,
+          marginTop: 2,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "800",
+          marginTop: 2,
+        },
         tabBarStyle: {
-          height: Platform.OS === "ios" ? 86 : 68,
-          paddingBottom: Platform.OS === "ios" ? 24 : 10,
-          paddingTop: 8,
+          height: 62 + bottomPad,
+          paddingBottom: bottomPad,
+          paddingTop: 6,
           backgroundColor: "#FFFFFF",
           borderTopColor: "#E2E8F0",
           borderTopWidth: 1,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          shadowColor: "#000",
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          shadowColor: "#0F172A",
+          shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.06,
           shadowRadius: 12,
-          elevation: 12,
+          elevation: 14,
         },
       }}
     >
@@ -61,16 +89,11 @@ function MainTabs() {
         options={{
           tabBarLabel: "Shop",
           tabBarIcon: ({ color, focused }) => (
-            <View
-              style={{
-                backgroundColor: focused ? "#FFF7ED" : "transparent",
-                paddingHorizontal: 14,
-                paddingVertical: 4,
-                borderRadius: 999,
-              }}
-            >
-              <Ionicons name={focused ? "home" : "home-outline"} size={21} color={color} />
-            </View>
+            <TabIconPill
+              name={focused ? "storefront" : "storefront-outline"}
+              color={color}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -80,16 +103,11 @@ function MainTabs() {
         options={{
           tabBarLabel: "Browse",
           tabBarIcon: ({ color, focused }) => (
-            <View
-              style={{
-                backgroundColor: focused ? "#FFF7ED" : "transparent",
-                paddingHorizontal: 14,
-                paddingVertical: 4,
-                borderRadius: 999,
-              }}
-            >
-              <Ionicons name={focused ? "grid" : "grid-outline"} size={20} color={color} />
-            </View>
+            <TabIconPill
+              name={focused ? "grid" : "grid-outline"}
+              color={color}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -99,18 +117,18 @@ function MainTabs() {
         options={{
           tabBarLabel: "Orders",
           tabBarBadge: orders.length > 0 ? orders.length : undefined,
-          tabBarBadgeStyle: { backgroundColor: "#059669", color: "#FFFFFF", fontWeight: "800", fontSize: 10 },
+          tabBarBadgeStyle: {
+            backgroundColor: "#059669",
+            color: "#FFFFFF",
+            fontWeight: "800",
+            fontSize: 10,
+          },
           tabBarIcon: ({ color, focused }) => (
-            <View
-              style={{
-                backgroundColor: focused ? "#FFF7ED" : "transparent",
-                paddingHorizontal: 14,
-                paddingVertical: 4,
-                borderRadius: 999,
-              }}
-            >
-              <Ionicons name={focused ? "cube" : "cube-outline"} size={21} color={color} />
-            </View>
+            <TabIconPill
+              name={focused ? "cube" : "cube-outline"}
+              color={color}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -120,18 +138,17 @@ function MainTabs() {
         options={{
           tabBarLabel: "Account",
           tabBarBadge: wishlist.length > 0 ? wishlist.length : undefined,
-          tabBarBadgeStyle: { backgroundColor: "#111827", color: "#FFFFFF", fontSize: 10 },
+          tabBarBadgeStyle: {
+            backgroundColor: "#111827",
+            color: "#FFFFFF",
+            fontSize: 10,
+          },
           tabBarIcon: ({ color, focused }) => (
-            <View
-              style={{
-                backgroundColor: focused ? "#FFF7ED" : "transparent",
-                paddingHorizontal: 14,
-                paddingVertical: 4,
-                borderRadius: 999,
-              }}
-            >
-              <Ionicons name={focused ? "person-circle" : "person-circle-outline"} size={22} color={color} />
-            </View>
+            <TabIconPill
+              name={focused ? "person-circle" : "person-circle-outline"}
+              color={color}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -169,3 +186,16 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  iconPill: {
+    width: 46,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconPillActive: {
+    backgroundColor: "#FFF7ED",
+  },
+});

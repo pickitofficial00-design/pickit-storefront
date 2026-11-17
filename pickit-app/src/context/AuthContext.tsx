@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -24,6 +25,7 @@ export interface PickitUser {
   firstName: string;
   lastName: string;
   email: string;
+  phone?: string;
   accessToken: string;
 }
 
@@ -35,7 +37,7 @@ interface AuthContextType {
   ready: boolean;
   openAuthModal: (defaultTab?: AuthMode, onSuccess?: () => void) => void;
   requireAuth: (actionCallback: () => void, defaultTab?: AuthMode) => boolean;
-  signOut: () => Promise<void>;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -44,7 +46,7 @@ const AuthContext = createContext<AuthContextType>({
   ready: false,
   openAuthModal: () => {},
   requireAuth: () => false,
-  signOut: async () => {},
+  signOut: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -54,11 +56,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [mode, setMode] = useState<AuthMode>("login");
+  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -109,6 +113,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleSubmitAuth = async () => {
+    if (mode === "login" && loginMethod === "phone" && !phone.trim()) {
+      setErrorMsg("Please enter your phone number.");
+      return;
+    }
     if (!email.trim()) {
       setErrorMsg("Please enter your email address.");
       return;
@@ -135,7 +143,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({
           action: mode,
+          loginMethod,
           email: email.trim(),
+          phone: phone.trim(),
           password,
           firstName,
           lastName,
@@ -169,6 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         firstName: data.customer?.firstName || firstName.trim(),
         lastName: data.customer?.lastName || lastName.trim(),
         email: data.customer?.email || email.trim(),
+        phone: data.customer?.phone || phone.trim(),
         accessToken: data.accessToken,
       };
 
@@ -189,11 +200,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signOut = async () => {
+  const performSignOut = async () => {
     setUser(null);
     setWelcomeSeen(false);
     await AsyncStorage.removeItem(USER_KEY).catch(() => {});
     await AsyncStorage.removeItem(GUEST_DISMISSED_KEY).catch(() => {});
+  };
+
+  const signOut = () => {
+    Alert.alert(
+      "Sign Out of PICKIT?",
+      "Are you sure you want to sign out of your account?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: () => {
+            performSignOut();
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   if (!ready) {
@@ -277,12 +306,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setErrorMsg(null);
             setSuccessMsg(null);
           }}
+          loginMethod={loginMethod}
+          setLoginMethod={(lm) => {
+            setLoginMethod(lm);
+            setErrorMsg(null);
+          }}
           firstName={firstName}
           setFirstName={setFirstName}
           lastName={lastName}
           setLastName={setLastName}
           email={email}
           setEmail={setEmail}
+          phone={phone}
+          setPhone={setPhone}
           password={password}
           setPassword={setPassword}
           showPass={showPass}
@@ -317,12 +353,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setErrorMsg(null);
           setSuccessMsg(null);
         }}
+        loginMethod={loginMethod}
+        setLoginMethod={(lm) => {
+          setLoginMethod(lm);
+          setErrorMsg(null);
+        }}
         firstName={firstName}
         setFirstName={setFirstName}
         lastName={lastName}
         setLastName={setLastName}
         email={email}
         setEmail={setEmail}
+        phone={phone}
+        setPhone={setPhone}
         password={password}
         setPassword={setPassword}
         showPass={showPass}
@@ -342,12 +385,16 @@ function AuthSheetModal(props: {
   onClose: () => void;
   mode: AuthMode;
   setMode: (m: AuthMode) => void;
+  loginMethod: "email" | "phone";
+  setLoginMethod: (m: "email" | "phone") => void;
   firstName: string;
   setFirstName: (v: string) => void;
   lastName: string;
   setLastName: (v: string) => void;
   email: string;
   setEmail: (v: string) => void;
+  phone: string;
+  setPhone: (v: string) => void;
   password: string;
   setPassword: (v: string) => void;
   showPass: boolean;
@@ -397,7 +444,7 @@ function AuthSheetModal(props: {
               {props.mode === "recover"
                 ? "Enter the email associated with your PICKIT account and we will send you a password reset link."
                 : props.mode === "login"
-                ? "Sign in with your PICKIT email and password."
+                ? "Sign in with your email or phone number."
                 : "Join PICKIT for fast US checkout, wishlists, and live order tracking."}
             </Text>
 
@@ -417,6 +464,47 @@ function AuthSheetModal(props: {
                 >
                   <Text style={[styles.segmentText, props.mode === "signup" && styles.segmentTextActive]}>
                     Create Account
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {props.mode === "login" && (
+              <View style={styles.methodChipRow}>
+                <TouchableOpacity
+                  style={[styles.methodChip, props.loginMethod === "email" && styles.methodChipActive]}
+                  onPress={() => props.setLoginMethod("email")}
+                >
+                  <Ionicons
+                    name="mail-outline"
+                    size={15}
+                    color={props.loginMethod === "email" ? "#FF6B00" : "#6B7280"}
+                  />
+                  <Text
+                    style={[
+                      styles.methodChipText,
+                      props.loginMethod === "email" && styles.methodChipTextActive,
+                    ]}
+                  >
+                    Email Login
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.methodChip, props.loginMethod === "phone" && styles.methodChipActive]}
+                  onPress={() => props.setLoginMethod("phone")}
+                >
+                  <Ionicons
+                    name="call-outline"
+                    size={15}
+                    color={props.loginMethod === "phone" ? "#FF6B00" : "#6B7280"}
+                  />
+                  <Text
+                    style={[
+                      styles.methodChipText,
+                      props.loginMethod === "phone" && styles.methodChipTextActive,
+                    ]}
+                  >
+                    Phone Number
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -461,6 +549,25 @@ function AuthSheetModal(props: {
                   />
                 </View>
               </View>
+            )}
+
+            {(props.mode === "signup" || (props.mode === "login" && props.loginMethod === "phone")) && (
+              <>
+                <Text style={styles.inputLabel}>
+                  US Phone Number {props.mode === "signup" ? "(Optional)" : ""}
+                </Text>
+                <View style={styles.phoneInputWrap}>
+                  <Text style={styles.countryPrefix}>🇺🇸 +1</Text>
+                  <TextInput
+                    style={[styles.input, { flex: 1, marginBottom: 0, borderWidth: 0 }]}
+                    placeholder="(555) 123-4567"
+                    placeholderTextColor="#9CA3AF"
+                    value={props.phone}
+                    onChangeText={props.setPhone}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+              </>
             )}
 
             <Text style={styles.inputLabel}>Email Address</Text>
@@ -658,7 +765,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F6",
     borderRadius: 12,
     padding: 4,
-    marginBottom: 18,
+    marginBottom: 14,
   },
   segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: "center" },
   segmentBtnActive: {
@@ -670,6 +777,36 @@ const styles = StyleSheet.create({
   },
   segmentText: { fontSize: 13.5, fontWeight: "700", color: "#6B7280" },
   segmentTextActive: { color: "#111827", fontWeight: "900" },
+  methodChipRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 14,
+  },
+  methodChip: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
+  },
+  methodChipActive: {
+    borderColor: "#FF6B00",
+    backgroundColor: "#FFF7ED",
+  },
+  methodChipText: {
+    fontSize: 12.5,
+    fontWeight: "700",
+    color: "#6B7280",
+  },
+  methodChipTextActive: {
+    color: "#FF6B00",
+    fontWeight: "800",
+  },
   errorBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -705,6 +842,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#111827",
     marginBottom: 14,
+  },
+  phoneInputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 12,
+    height: 48,
+    paddingLeft: 12,
+    marginBottom: 14,
+  },
+  countryPrefix: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#111827",
+    paddingRight: 8,
+    borderRightWidth: 1,
+    borderRightColor: "#E5E7EB",
+    marginRight: 4,
   },
   passRow: {
     flexDirection: "row",

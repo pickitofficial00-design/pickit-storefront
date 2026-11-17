@@ -1,6 +1,16 @@
 import { gql } from "@shopify/hydrogen";
 import { createRequestStorefrontClient } from "../../../lib/storefront";
 
+function normalizeUsPhone(raw?: string): string | undefined {
+  if (!raw) return undefined;
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return undefined;
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (raw.trim().startsWith("+") && digits.length >= 10) return `+${digits}`;
+  return undefined;
+}
+
 const CUSTOMER_CREATE_MUTATION = gql(`
   mutation CustomerCreate($input: CustomerCreateInput!) {
     customerCreate(input: $input) {
@@ -9,6 +19,7 @@ const CUSTOMER_CREATE_MUTATION = gql(`
         firstName
         lastName
         email
+        phone
       }
       customerUserErrors {
         field
@@ -51,6 +62,7 @@ const CUSTOMER_INFO_QUERY = gql(`
       firstName
       lastName
       email
+      phone
     }
   }
 `);
@@ -58,18 +70,19 @@ const CUSTOMER_INFO_QUERY = gql(`
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, email, password, firstName, lastName } = body || {};
+    const { action, loginMethod, email, phone, password, firstName, lastName } = body || {};
 
-    if (!email || !email.trim()) {
-      return Response.json({ error: "Please enter your email address." }, { status: 400 });
-    }
-
-    const storefront = createRequestStorefrontClient(request);
+    const cleanEmail = (email || "").trim();
+    const normalizedPhone = normalizeUsPhone(phone);
 
     if (action === "recover") {
+      if (!cleanEmail) {
+        return Response.json({ error: "Please enter your email address." }, { status: 400 });
+      }
+      const storefront = createRequestStorefrontClient(request);
       const { data: recData, errors: recErrors } = await storefront.graphql(
         CUSTOMER_RECOVER_MUTATION,
-        { variables: { email: email.trim() } }
+        { variables: { email: cleanEmail } }
       );
       const userErrors = recData?.customerRecover?.customerUserErrors || [];
       if (recErrors || userErrors.length > 0) {
@@ -85,19 +98,32 @@ export async function POST(request: Request) {
     }
 
     if (!password) {
-      return Response.json({ error: "Please enter both email and password." }, { status: 400 });
+      return Response.json({ error: "Please enter your password." }, { status: 400 });
     }
 
+    const storefront = createRequestStorefrontClient(request);
+
     if (action === "signup") {
+      if (!cleanEmail) {
+        return Response.json({ error: "Please enter your email address." }, { status: 400 });
+      }
+      if (phone && phone.trim() && !normalizedPhone) {
+        return Response.json(
+          { error: "Please enter a valid 10-digit US phone number (e.g. 555-123-4567)." },
+          { status: 400 }
+        );
+      }
+
       const { data: createData, errors: createErrors } = await storefront.graphql(
         CUSTOMER_CREATE_MUTATION,
         {
           variables: {
             input: {
-              email: email.trim(),
+              email: cleanEmail,
               password,
               firstName: (firstName || "").trim() || undefined,
               lastName: (lastName || "").trim() || undefined,
+              phone: normalizedPhone,
               acceptsMarketing: true,
             },
           },
@@ -107,17 +133,38 @@ export async function POST(request: Request) {
       const userErrors = createData?.customerCreate?.customerUserErrors || [];
       if (createErrors || userErrors.length > 0) {
         return Response.json(
-          { error: userErrors[0]?.message || "Unable to create account. Try a different email." },
+          { error: userErrors[0]?.message || "Unable to create account. Try a different email or phone." },
           { status: 400 }
         );
       }
+    }
+
+    // Resolve email for Shopify Storefront login (supports Email OR Phone sign-in)
+    let loginEmail = cleanEmail;
+    if (action === "login" && loginMethod === "phone") {
+      if (!normalizedPhone) {
+        return Response.json(
+          { error: "Please enter a valid 10-digit US phone number." },
+          { status: 400 }
+        );
+      }
+      if (!loginEmail) {
+        return Response.json(
+          { error: "Please also enter your account email to verify phone sign-in." },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (!loginEmail) {
+      return Response.json({ error: "Please enter your email address." }, { status: 400 });
     }
 
     const { data: loginData, errors: loginErrors } = await storefront.graphql(
       CUSTOMER_LOGIN_MUTATION,
       {
         variables: {
-          input: { email: email.trim(), password },
+          input: { email: loginEmail, password },
         },
       }
     );
@@ -127,7 +174,7 @@ export async function POST(request: Request) {
 
     if (loginErrors || loginUserErrors.length > 0 || !tokenObj?.accessToken) {
       return Response.json(
-        { error: loginUserErrors[0]?.message || "Invalid email or password." },
+        { error: loginUserErrors[0]?.message || "Invalid credentials. Please check and try again." },
         { status: 401 }
       );
     }
@@ -144,7 +191,8 @@ export async function POST(request: Request) {
         id: customer?.id || "",
         firstName: customer?.firstName || firstName || "",
         lastName: customer?.lastName || lastName || "",
-        email: customer?.email || email.trim(),
+        email: customer?.email || loginEmail,
+        phone: customer?.phone || normalizedPhone || "",
       },
     });
   } catch (err: any) {

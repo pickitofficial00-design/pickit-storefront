@@ -198,6 +198,7 @@ export default function AccountScreen() {
               </View>
               <Text style={styles.memberName}>{fullName || "PICKIT Member"}</Text>
               <Text style={styles.memberEmail}>{user.email}</Text>
+              {user.phone ? <Text style={[styles.memberEmail, { marginTop: -8 }]}>{user.phone}</Text> : null}
               <TouchableOpacity
                 style={styles.signOutBtn}
                 onPress={signOut}

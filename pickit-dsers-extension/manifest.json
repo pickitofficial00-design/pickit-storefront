@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "PICKIT DSers Autopilot (dsers.com Auto-Select & Push)",
+  "version": "1.1.0",
+  "description": "Automatically selects Ship-to-USA products on dsers.com (up to 1,000/category), adds to Import List, pushes to Shopify with Pricing Rules, and publishes to PICKIT Web & App.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://*.dsers.com/*",
+    "https://pickit-storefront.vercel.app/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://*.dsers.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

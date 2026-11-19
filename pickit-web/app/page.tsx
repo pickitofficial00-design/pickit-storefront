@@ -102,9 +102,50 @@ export default function Home() {
       if (!response.ok) throw new Error("Could not load Shopify products.");
       const data = await response.json();
       if (!Array.isArray(data.products)) throw new Error("Invalid product data received.");
-      setProducts((current) => (isFirstPage ? data.products : [...current, ...data.products]));
+      setProducts((current) => {
+        const base = isFirstPage ? [] : current;
+        const seen = new Set(base.map((item) => item.id));
+        const merged = [...base];
+        for (const item of data.products) {
+          if (!seen.has(item.id)) {
+            seen.add(item.id);
+            merged.push(item);
+          }
+        }
+        return merged;
+      });
       setHasNextPage(Boolean(data.hasNextPage));
       setNextCursor(data.nextCursor ?? null);
+
+      if (isFirstPage && data.hasNextPage && data.nextCursor) {
+        setLoading(false);
+        setLoadingMore(true);
+        let currentCursor: string | null = data.nextCursor;
+        let more = true;
+        let pages = 1;
+        while (more && currentCursor && pages < 100) {
+          const nextRes = await fetch(`/api/shopify-test?cursor=${encodeURIComponent(currentCursor)}`);
+          if (!nextRes.ok) break;
+          const nextData = await nextRes.json();
+          if (!Array.isArray(nextData.products)) break;
+          setProducts((current) => {
+            const seen = new Set(current.map((item) => item.id));
+            const merged = [...current];
+            for (const item of nextData.products) {
+              if (!seen.has(item.id)) {
+                seen.add(item.id);
+                merged.push(item);
+              }
+            }
+            return merged;
+          });
+          more = Boolean(nextData.hasNextPage && nextData.nextCursor);
+          currentCursor = nextData.nextCursor ?? null;
+          setHasNextPage(more);
+          setNextCursor(currentCursor);
+          pages++;
+        }
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong while loading products.";
       if (isFirstPage) setError(message);

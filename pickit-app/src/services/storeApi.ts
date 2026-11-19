@@ -71,7 +71,7 @@ export async function fetchProducts(cursor?: string | null): Promise<ProductsRes
   let hasNextPage = true;
   let pageCount = 0;
 
-  while (hasNextPage && pageCount < 15) {
+  while (hasNextPage && pageCount < 100) {
     const page = await fetchProductPage(nextCursor);
     for (const item of page.products || []) {
       if (!seenIds.has(item.id)) {

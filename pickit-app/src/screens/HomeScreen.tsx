@@ -88,7 +88,16 @@ export default function HomeScreen() {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
-      const res = await fetchProducts();
+      const res = await fetchProducts(null, {
+        forceRefresh: isRefresh,
+        onProgress: (partial) => {
+          if (partial.length > 0) {
+            setProducts(partial);
+            setLoading(false);
+            setRefreshing(false);
+          }
+        },
+      });
       setProducts(res.products || []);
     } catch (err: any) {
       setError(err?.message || "Unable to load store catalog");

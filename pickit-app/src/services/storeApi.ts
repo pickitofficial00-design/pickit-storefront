@@ -1,5 +1,5 @@
 // Single API adapter for PICKIT.
-// Automatically paginates through all pages and preserves full image galleries & variants.
+// Streams Page 1 immediately for instant front-page load and caches full catalog across screens.
 
 const API_BASE_URL = "https://pickit-storefront.vercel.app";
 
@@ -47,6 +47,29 @@ export interface ProductsResponse {
   nextCursor: string | null;
 }
 
+let cachedProducts: Product[] = [];
+let isFetchingAll = false;
+let activeFetchPromise: Promise<ProductsResponse> | null = null;
+const listeners = new Set<(products: Product[], done: boolean) => void>();
+
+function notifyListeners(products: Product[], done: boolean) {
+  for (const listener of listeners) {
+    try {
+      listener(products, done);
+    } catch {}
+  }
+}
+
+export function subscribeCatalog(listener: (products: Product[], done: boolean) => void): () => void {
+  listeners.add(listener);
+  if (cachedProducts.length > 0) {
+    listener(cachedProducts, !isFetchingAll);
+  }
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 async function fetchProductPage(cursor?: string | null): Promise<ProductsResponse> {
   const url = new URL(`${API_BASE_URL}/api/shopify-test`);
   if (cursor) {
@@ -60,35 +83,91 @@ async function fetchProductPage(cursor?: string | null): Promise<ProductsRespons
   return res.json();
 }
 
-export async function fetchProducts(cursor?: string | null): Promise<ProductsResponse> {
+export async function fetchProducts(
+  cursor?: string | null,
+  options?: { forceRefresh?: boolean; onProgress?: (products: Product[], done: boolean) => void }
+): Promise<ProductsResponse> {
   if (cursor) {
     return fetchProductPage(cursor);
   }
 
-  const allProducts: Product[] = [];
-  const seenIds = new Set<string>();
-  let nextCursor: string | null = null;
-  let hasNextPage = true;
-  let pageCount = 0;
+  const forceRefresh = Boolean(options?.forceRefresh);
+  const onProgress = options?.onProgress;
 
-  while (hasNextPage && pageCount < 100) {
-    const page = await fetchProductPage(nextCursor);
-    for (const item of page.products || []) {
-      if (!seenIds.has(item.id)) {
-        seenIds.add(item.id);
-        allProducts.push(item);
-      }
+  if (!forceRefresh && cachedProducts.length > 0) {
+    onProgress?.(cachedProducts, !isFetchingAll);
+    if (activeFetchPromise) {
+      return activeFetchPromise;
     }
-    hasNextPage = Boolean(page.hasNextPage && page.nextCursor);
-    nextCursor = page.nextCursor || null;
-    pageCount++;
+    return {
+      products: cachedProducts,
+      hasNextPage: false,
+      nextCursor: null,
+    };
   }
 
-  return {
-    products: allProducts,
-    hasNextPage: false,
-    nextCursor: null,
-  };
+  if (activeFetchPromise && !forceRefresh) {
+    return activeFetchPromise;
+  }
+
+  isFetchingAll = true;
+  const runFetch = (async () => {
+    const allProducts: Product[] = [];
+    const seenIds = new Set<string>();
+    let nextCursor: string | null = null;
+    let hasNextPage = true;
+    let pageCount = 0;
+
+    try {
+      while (hasNextPage && pageCount < 100) {
+        const page = await fetchProductPage(nextCursor);
+        for (const item of page.products || []) {
+          if (!seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            allProducts.push(item);
+          }
+        }
+        hasNextPage = Boolean(page.hasNextPage && page.nextCursor);
+        nextCursor = page.nextCursor || null;
+        pageCount++;
+
+        cachedProducts = [...allProducts];
+        const done = !hasNextPage || pageCount >= 100;
+
+        // Immediately deliver Page 1, then update every 3 pages to keep scrolling smooth
+        if (pageCount === 1 || pageCount % 3 === 0 || done) {
+          onProgress?.(cachedProducts, done);
+          notifyListeners(cachedProducts, done);
+        }
+      }
+
+      isFetchingAll = false;
+      notifyListeners(cachedProducts, true);
+      return {
+        products: cachedProducts,
+        hasNextPage: false,
+        nextCursor: null,
+      };
+    } catch (err) {
+      isFetchingAll = false;
+      if (allProducts.length > 0) {
+        cachedProducts = [...allProducts];
+        onProgress?.(cachedProducts, true);
+        notifyListeners(cachedProducts, true);
+        return {
+          products: cachedProducts,
+          hasNextPage: false,
+          nextCursor: null,
+        };
+      }
+      throw err;
+    } finally {
+      activeFetchPromise = null;
+    }
+  })();
+
+  activeFetchPromise = runFetch;
+  return runFetch;
 }
 
 export async function createCheckoutUrl(

@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { fetchProducts, Product } from "../services/storeApi";
+import { fetchProducts, Product, subscribeCatalog } from "../services/storeApi";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 
@@ -147,10 +147,24 @@ export default function CategoriesScreen() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    fetchProducts()
+    const unsubscribe = subscribeCatalog((items) => {
+      if (items.length > 0) {
+        setProducts(items);
+        setLoading(false);
+      }
+    });
+    fetchProducts(null, {
+      onProgress: (items) => {
+        if (items.length > 0) {
+          setProducts(items);
+          setLoading(false);
+        }
+      },
+    })
       .then((res) => setProducts(res.products || []))
       .catch(() => {})
       .finally(() => setLoading(false));
+    return unsubscribe;
   }, []);
 
   const visibleProducts = useMemo(() => {

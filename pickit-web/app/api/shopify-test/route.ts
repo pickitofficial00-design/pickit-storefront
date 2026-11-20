@@ -161,7 +161,7 @@ export async function GET(request: Request) {
     if (!cursor && jitBase) {
       try {
         const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), 3000);
+        const t = setTimeout(() => ctrl.abort(), 8000);
         const jr = await fetch(jitBase + "/api/search?limit=100", { signal: ctrl.signal, cache: "no-store" });
         clearTimeout(t);
         if (jr.ok) {
@@ -195,7 +195,7 @@ export async function GET(request: Request) {
             });
           }
         }
-      } catch {}
+      } catch (e: any) { return Response.json({ products, jitError: String(e?.message || e), jitBase, hasNextPage: data.products.pageInfo.hasNextPage, nextCursor: data.products.pageInfo.endCursor }); }
     }
 
     return Response.json({

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Cart is empty" }, { status: 400 });
     }
 
-    const jitBase = process.env.PICKIT_API_URL || "https://api.pickitcart.com";
+    const jitBase = ((process.env.PICKIT_API_URL || "").match(/https?:\/\/[^)\]\s"']+/)?.[0]) || "https://api.pickitcart.com";
     const lines = [];
     for (const item of items) {
       let vid = item.variantId;

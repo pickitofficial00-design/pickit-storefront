@@ -1,16 +1,17 @@
-import Database from "better-sqlite3";
-import { Meilisearch } from "meilisearch";
-
-const db = new Database("./data/jit_cache.db");
-db.exec(`CREATE TABLE IF NOT EXISTS jit_map (
-  cache_key TEXT PRIMARY KEY,
-  source_pid TEXT,
-  variant_sku TEXT,
-  shopify_product_id TEXT,
-  shopify_variant_id TEXT,
-  retail_price REAL,
-  created_at INTEGER
-)`);
+import fs from "fs";
+const CACHE_FILE = "./data/jit_cache.json";
+const loadCache = () => { try { return JSON.parse(fs.readFileSync(CACHE_FILE, "utf8")); } catch { return {}; } };
+const saveCache = (c) => { fs.mkdirSync("./data", { recursive: true }); fs.writeFileSync(CACHE_FILE, JSON.stringify(c, null, 2)); };
+const db = {
+  prepare: (sql) => ({
+    get: (key) => loadCache()[key],
+    run: (...args) => {
+      const c = loadCache();
+      c[args[0]] = { cache_key: args[0], source_pid: args[1], variant_sku: args[2], shopify_product_id: args[3], shopify_variant_id: args[4], retail_price: args[5], created_at: args[6] };
+      saveCache(c);
+    }
+  })
+};
 
 const meili = new Meilisearch({ host: "http://127.0.0.1:7700", apiKey: process.env.MEILI_MASTER_KEY || "pickit_master_key_2026" });
 

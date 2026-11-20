@@ -25,10 +25,25 @@ export async function POST(request: Request) {
       return Response.json({ error: "Cart is empty" }, { status: 400 });
     }
 
-    const lines = items.map((item) => ({
-      merchandiseId: item.variantId,
-      quantity: item.quantity,
-    }));
+    const jitBase = process.env.PICKIT_API_URL || "https://suspended-policies-afternoon-motorcycles.trycloudflare.com";
+    const lines = [];
+    for (const item of items) {
+      let vid = item.variantId;
+      if (String(vid).startsWith("jit::")) {
+        const pid = String(vid).replace(/^jit::/, "");
+        const jr = await fetch(jitBase + "/api/jit-cart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ productId: pid })
+        });
+        const jd = await jr.json();
+        vid = jd?.item?.shopify_variant_id;
+        if (!vid || String(vid).includes("DRY_")) {
+          return Response.json({ error: jd?.error || "Failed to sync JIT product" }, { status: 502 });
+        }
+      }
+      lines.push({ merchandiseId: vid, quantity: item.quantity });
+    }
 
     const storefront = createRequestStorefrontClient(request);
     const { data, errors } = await storefront.graphql(CART_CREATE_MUTATION, {

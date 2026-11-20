@@ -155,6 +155,49 @@ export async function GET(request: Request) {
       };
     });
 
+
+    // Merge live JIT Meilisearch catalog when Chromebook tunnel is online (3s timeout)
+    const jitBase = process.env.PICKIT_API_URL || "https://suspended-policies-afternoon-motorcycles.trycloudflare.com";
+    if (!cursor && jitBase) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 3000);
+        const jr = await fetch(jitBase + "/api/search?limit=100", { signal: ctrl.signal, cache: "no-store" });
+        clearTimeout(t);
+        if (jr.ok) {
+          const jd = await jr.json();
+          const seenTitles = new Set(products.map((p: any) => p.name.toLowerCase()));
+          for (const item of (jd.products || [])) {
+            const cleanName = formatUsTitle(item.title || "");
+            if (!cleanName || seenTitles.has(cleanName.toLowerCase())) continue;
+            seenTitles.add(cleanName.toLowerCase());
+            const pid = item.source_pid || item.id;
+            const price = Number(item.retail_price || 19.99);
+            const compareAt = Number(item.compare_at_price || 0);
+            products.push({
+              id: "jit::" + pid,
+              handle: "jit-" + String(pid).toLowerCase(),
+              name: cleanName,
+              description: item.description || cleanName,
+              price,
+              currency: "USD",
+              variantId: "jit::" + pid,
+              rating: Number(item.rating || 4.8),
+              brand: item.seller_name || "PICKIT",
+              inStock: true,
+              discount: compareAt > price ? Math.round(((compareAt - price) / compareAt) * 100) : 0,
+              category: item.category || "Trending",
+              image: item.main_image || (item.images && item.images[0]) || "",
+              images: item.images || [item.main_image].filter(Boolean),
+              imageAlt: cleanName,
+              options: [],
+              variants: [{ id: "jit::" + pid, title: "Standard", price, compareAtPrice: compareAt || null, availableForSale: true, image: item.main_image || null, selectedOptions: [] }]
+            });
+          }
+        }
+      } catch {}
+    }
+
     return Response.json({
       products,
       hasNextPage: data.products.pageInfo.hasNextPage,

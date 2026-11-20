@@ -1,3 +1,4 @@
+import { Meilisearch } from "meilisearch";
 import fs from "fs";
 const CACHE_FILE = "./data/jit_cache.json";
 const loadCache = () => { try { return JSON.parse(fs.readFileSync(CACHE_FILE, "utf8")); } catch { return {}; } };

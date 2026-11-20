@@ -157,7 +157,7 @@ export async function GET(request: Request) {
 
 
     // Merge live JIT Meilisearch catalog when Chromebook tunnel is online (3s timeout)
-    const jitBase = process.env.PICKIT_API_URL || "https://suspended-policies-afternoon-motorcycles.trycloudflare.com";
+    const jitBase = process.env.PICKIT_API_URL || "https://api.pickitcart.com";
     if (!cursor && jitBase) {
       try {
         const ctrl = new AbortController();

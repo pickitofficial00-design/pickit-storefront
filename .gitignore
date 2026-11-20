@@ -1,0 +1,8 @@
+
+# Large binaries & runtime data
+/meilisearch
+/cloudflared
+/data.ms
+/data
+/logs
+/dumps

@@ -1,0 +1,11 @@
+node_modules
+pickit-web
+pickit-app
+data.ms
+data
+logs
+dumps
+meilisearch
+cloudflared
+.env
+.git

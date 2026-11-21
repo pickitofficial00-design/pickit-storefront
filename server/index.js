@@ -45,8 +45,8 @@ app.get("/api/search", async (req, res) => {
       filter: filters.join(" AND "),
       sort: sortMap[sort] || undefined,
       facets: ["category", "shipping_tiers", "us_stock", "seller_name", "variants.color", "variants.size"],
-      limit: Math.min(100, Number(limit) || 24),
-      offset: (Math.max(1, Number(page) || 1) - 1) * (Math.min(100, Number(limit) || 24))
+      limit: Math.min(250, Number(limit) || 24),
+      offset: (Math.max(1, Number(page) || 1) - 1) * (Math.min(250, Number(limit) || 24))
     });
 
     res.json({

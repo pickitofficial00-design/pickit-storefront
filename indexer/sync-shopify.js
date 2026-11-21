@@ -30,16 +30,16 @@ async function getToken(shop) {
 
 export async function syncShopify() {
   const shop = process.env.SHOPIFY_SHOP_DOMAIN;
-  if (!shop) throw new Error("Missing SHOPIFY_SHOP_DOMAIN on Railway");
+  if (!shop) throw new Error("Missing SHOPIFY_SHOP_DOMAIN");
   const token = await getToken(shop);
   const r = await fetch(`https://${shop}/admin/api/2025-01/products.json?limit=250&status=active`, { headers: { "X-Shopify-Access-Token": token } });
   const d = await r.json();
-  if (!r.ok) throw new Error(`Shopify HTTP ${r.status}: ${JSON.stringify(d).slice(0, 200)}`);
+  if (!r.ok) throw new Error(`Shopify HTTP ${r.status}`);
   const list = d.products || [];
   const docs = list.map(p => {
     const v0 = p.variants?.[0] || {};
     const price = Number(v0.price || 0);
-    const images = (p.images || []).map(i => i.src).filter(Boolean);
+    const images = (p.images || []).map(i => i.src).filter(Boolean).slice(0, 6);
     const mainImg = p.image?.src || images[0] || "";
     return {
       id: "SHOP_" + p.id, source_pid: "SHOP_" + p.id, source_url: `https://${shop}/products/${p.handle}`,
@@ -49,13 +49,19 @@ export async function syncShopify() {
       main_image: mainImg, images, retail_price: price, supplier_cost: price, us_stock: true,
       shipping_tiers: ["STANDARD_7_12D", "MODERATE_4_7D", "EXPRESS_3_4D"],
       rating: 4.9, orders_count: 100, in_stock: true, created_at: Date.now(),
-      variants: (p.variants || []).map(v => ({ sku: v.sku || String(v.id), shopify_variant_id: String(v.id), color: v.option1 || "Standard", size: v.option2 || "One Size", title: v.title, price: Number(v.price || price), image: mainImg }))
+      variants: (p.variants || []).slice(0, 20).map(v => ({ sku: v.sku || String(v.id), shopify_variant_id: String(v.id), color: v.option1 || "Standard", size: v.option2 || "One Size", title: v.title, price: Number(v.price || price), image: mainImg }))
     };
   });
   const idx = meili.index("products");
   await waitTask(await idx.deleteAllDocuments());
-  const res = docs.length ? await waitTask(await idx.addDocuments(docs)) : { status: "empty" };
-  return { ok: res.status === "succeeded", fetched: list.length, taskStatus: res.status, taskError: res.error || null };
+  let indexed = 0;
+  for (let i = 0; i < docs.length; i += 25) {
+    const chunk = docs.slice(i, i + 25);
+    const res = await waitTask(await idx.addDocuments(chunk));
+    if (res.status !== "succeeded") throw new Error("Batch failed: " + JSON.stringify(res.error || res.status));
+    indexed += chunk.length;
+  }
+  return { ok: true, fetched: list.length, indexed };
 }
 
 if (process.argv[1]?.endsWith("sync-shopify.js")) {

@@ -22,13 +22,16 @@ echo "Configuring Meilisearch index..."
 node --max-old-space-size=160 indexer/setup-meili.js || true
 
 KEY="${MEILI_MASTER_KEY:-pickit_master_key_2026}"
-STATS=$(curl -s -H "Authorization: Bearer $KEY" http://127.0.0.1:7700/indexes/products/stats || true)
-if ! echo "$STATS" | grep -q '"numberOfDocuments":[1-9]'; then
-  echo "Index is empty — importing CJ catalog (US + Global)..."
-  node --max-old-space-size=160 indexer/import-cj.js "" US 2 || true
-  node --max-old-space-size=160 indexer/import-cj.js "" "" 2 || true
+if [ ! -f /app/data/.catalog_v2_ready ]; then
+  echo "Clearing random CJ items and importing store niches..."
+  curl -s -X DELETE -H "Authorization: Bearer $KEY" http://127.0.0.1:7700/indexes/products/documents || true
+  sleep 2
+  node --max-old-space-size=160 indexer/import-cj.js "sunglasses" US 2 || true
+  node --max-old-space-size=160 indexer/import-cj.js "smart watch" US 2 || true
+  node --max-old-space-size=160 indexer/import-cj.js "accessories" US 2 || true
+  touch /app/data/.catalog_v2_ready
 else
-  echo "Existing Meilisearch catalog found on volume — skipping initial import."
+  echo "Store catalog already populated on volume."
 fi
 
 echo "Starting PICKIT Unified Engine..."

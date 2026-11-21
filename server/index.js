@@ -1,3 +1,4 @@
+import { syncShopify } from "../indexer/sync-shopify.js";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -14,6 +15,11 @@ app.use(express.static("public"));
 const meili = new Meilisearch({ host: "http://127.0.0.1:7700", apiKey: process.env.MEILI_MASTER_KEY || "pickit_master_key_2026" });
 
 // Unified Search & Faceted Filter API for Web & Mobile App
+app.get("/api/sync-shopify", async (req, res) => {
+  if (req.query.key !== (process.env.MEILI_MASTER_KEY || "pickit_master_key_2026")) return res.status(401).json({ ok: false, error: "Unauthorized" });
+  try { res.json(await syncShopify()); } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 app.get("/api/search", async (req, res) => {
   try {
     const { q = "", category, minPrice, maxPrice, shippingTier, usStock, minRating, seller, color, size, sort, page = 1, limit = 24 } = req.query;

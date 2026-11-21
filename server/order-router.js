@@ -2,6 +2,34 @@ import fs from "fs";
 
 let cjTokenCache = null, cjTokenExp = 0;
 
+async function getShopifyToken(shop) {
+  if (process.env.SHOPIFY_ADMIN_TOKEN) return process.env.SHOPIFY_ADMIN_TOKEN;
+  const r = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: process.env.SHOPIFY_CLIENT_ID || "",
+      client_secret: process.env.SHOPIFY_CLIENT_SECRET || "",
+      grant_type: "client_credentials"
+    })
+  });
+  const d = await r.json();
+  return d.access_token || null;
+}
+
+async function tagShopifyOrder(orderId, tags, note) {
+  const shop = process.env.SHOPIFY_SHOP_DOMAIN;
+  if (!shop || !orderId || String(orderId) === "1001") return { status: "SKIPPED_TEST_OR_NO_SHOP" };
+  const token = await getShopifyToken(shop);
+  if (!token) return { status: "SKIPPED_NO_SHOPIFY_TOKEN" };
+  const r = await fetch(`https://${shop}/admin/api/2025-01/orders/${orderId}.json`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
+    body: JSON.stringify({ order: { id: orderId, tags, note } })
+  });
+  return { status: r.ok ? "SHOPIFY_ORDER_TAGGED" : `SHOPIFY_HTTP_${r.status}` };
+}
+
 async function getCjToken() {
   if (process.env.CJ_ACCESS_TOKEN) return process.env.CJ_ACCESS_TOKEN;
   if (cjTokenCache && Date.now() < cjTokenExp) return cjTokenCache;
@@ -69,7 +97,7 @@ async function pushOrderToCj(order, tier, isUsStock) {
 
 export async function routePaidOrder(order) {
   const shipTitle = (order?.shipping_lines?.[0]?.title || "").toLowerCase();
-  let tier = "TIER_1_STANDARD_7_12D", agency = "PRIVATE_AGENCY_MAIN", carrierHint = "Standard Tracked Air (7-12 Days)";
+  let tier = "TIER_1_STANDARD_7_12D", agency = "PRIVATE_AGENCY_SHOPIFY", carrierHint = "Standard Tracked Air (7-12 Days)";
   const isUsStock = (order.line_items || []).every(li => (li.properties || []).some(p => p.name === "us_stock" && p.value === "true"));
 
   if (shipTitle.includes("express") || shipTitle.includes("3-4") || shipTitle.includes("3–4")) {
@@ -82,11 +110,18 @@ export async function routePaidOrder(order) {
     carrierHint = "CJPacket Fast / YunExpress Priority Air (4-7 Days)";
   }
 
-  let cjDispatch = { status: "QUEUED_FOR_PRIVATE_AGENCY" };
+  let cjDispatch = { status: "QUEUED_FOR_PRIVATE_AGENCY_IN_SHOPIFY" };
   if (tier !== "TIER_1_STANDARD_7_12D" || process.env.CJ_ALL_TIERS === "true") {
     try { cjDispatch = await pushOrderToCj(order, tier, isUsStock); }
     catch (e) { cjDispatch = { status: "CJ_DISPATCH_ERROR", error: e.message }; }
   }
+
+  const existingTags = order.tags ? order.tags + ", " : "";
+  const routingTag = tier === "TIER_1_STANDARD_7_12D" ? "AGENCY_STANDARD_7_12D" : tier;
+  const itemSummary = (order.line_items || []).map(li => `${li.quantity}x ${li.title} (SKU: ${li.sku || "N/A"})`).join(" | ");
+  const shopifyTagResult = order._dry_run
+    ? { status: "DRY_RUN_SKIPPED" }
+    : await tagShopifyOrder(order.id, existingTags + routingTag, `PICKIT Auto-Router: ${agency} | ${carrierHint} | Items: ${itemSummary}`);
 
   const job = {
     timestamp: new Date().toISOString(),
@@ -95,11 +130,33 @@ export async function routePaidOrder(order) {
     tier,
     routed_agency: agency,
     carrier_hint: carrierHint,
+    shopify_tag: shopifyTagResult,
     cj_dispatch: cjDispatch,
     shipping_address: order.shipping_address || {},
     items: (order.line_items || []).map(li => ({ title: li.title, sku: li.sku, quantity: li.quantity, price: li.price })),
-    sla_deadline_hours: 24
+    sla_deadline_hours: 24,
+    status: "PENDING_SCAN"
   };
+  fs.mkdirSync("./data", { recursive: true });
   fs.appendFileSync("./data/fulfillment_queue.jsonl", JSON.stringify(job) + "\n");
   return job;
+}
+
+export function runSlaFailoverCheck() {
+  try {
+    if (!fs.existsSync("./data/fulfillment_queue.jsonl")) return { checked: 0, overdue: 0 };
+    const lines = fs.readFileSync("./data/fulfillment_queue.jsonl", "utf8").trim().split("\n").filter(Boolean);
+    const now = Date.now();
+    let overdue = 0;
+    for (const line of lines) {
+      const job = JSON.parse(line);
+      if (job.status === "PENDING_SCAN" && (now - new Date(job.timestamp).getTime()) > 24 * 3600 * 1000) {
+        overdue++;
+        console.warn("SLA_24H_FAILOVER_ALERT:", job.order_name, job.tier, job.routed_agency);
+      }
+    }
+    return { checked: lines.length, overdue };
+  } catch (e) {
+    return { error: e.message };
+  }
 }

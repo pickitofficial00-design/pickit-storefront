@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { Meilisearch } from "meilisearch";
 import { getOrCreateShopifyVariant } from "./jit-shopify.js";
-import { routePaidOrder } from "./order-router.js";
+import { routePaidOrder, runSlaFailoverCheck } from "./order-router.js";
 
 dotenv.config();
 const app = express();

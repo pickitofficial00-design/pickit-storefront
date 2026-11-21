@@ -77,7 +77,7 @@ app.post("/api/jit-cart", async (req, res) => {
 // Shopify Paid Order 3-Tier Fulfillment Router
 app.post("/webhooks/orders-paid", async (req, res) => {
   try {
-    const job = await routePaidOrder(req.body || {});
+    const job = await routePaidOrder(req.body || {}); console.log("WEBHOOK_ORDER_ROUTED:", job.order_name, job.tier, job.routed_agency);
     res.json({ ok: true, routed: job });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });

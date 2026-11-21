@@ -17,7 +17,7 @@
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
       <a href="/" class="text-2xl font-black tracking-tight text-slate-900">PICK<span class="text-emerald-600">IT</span></a>
       <div class="flex-1 max-w-xl">
-        <input id="searchInput" type="search" placeholder="Search sunglasses, smart watches, gear..."
+        <input id="searchInput" type="search" placeholder="Search 2,830+ gadgets, desk setup, home & gaming gear..."
           class="w-full rounded-full border border-slate-300 bg-slate-100 px-4 py-2 text-sm focus:bg-white focus:border-emerald-600 focus:outline-none" />
       </div>
       <div class="flex items-center gap-3">
@@ -32,10 +32,11 @@
     </div>
     <!-- Category Filter Pills -->
     <div id="categoryBar" class="max-w-7xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto text-xs font-medium">
-      <button data-cat="" class="cat-pill px-3 py-1.5 rounded-full bg-slate-900 text-white">All Products</button>
-      <button data-cat="Sunglasses" class="cat-pill px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Sunglasses</button>
-      <button data-cat="Watch" class="cat-pill px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Smart Watches</button>
-      <button data-cat="Jewelry" class="cat-pill px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Accessories</button>
+      <button data-cat="" class="cat-pill shrink-0 px-3 py-1.5 rounded-full bg-slate-900 text-white">All Products</button>
+      <button data-cat="Desk Setup Products" class="cat-pill shrink-0 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Desk Setup</button>
+      <button data-cat="Gaming Accessories" class="cat-pill shrink-0 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Gaming Accessories</button>
+      <button data-cat="Home & Kitchen Gadgets" class="cat-pill shrink-0 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Home &amp; Kitchen</button>
+      <button data-cat="Featured" class="cat-pill shrink-0 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Featured</button>
     </div>
   </header>
 
@@ -45,6 +46,11 @@
       <p id="resultMeta" class="text-sm text-slate-500">Loading catalog...</p>
     </div>
     <div id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"></div>
+    <div id="loadMoreWrap" class="mt-8 text-center hidden">
+      <button id="loadMoreBtn" class="rounded-full bg-slate-900 text-white px-8 py-3 text-sm font-semibold hover:bg-emerald-600 transition">
+        Load More Products
+      </button>
+    </div>
   </main>
 
   <!-- Slide-out Cart Drawer -->
@@ -71,25 +77,37 @@
 
   <script>
     const API_BASE = (location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname.endsWith("trycloudflare.com")) ? "" : "https://api.pickitcart.com";
-    let state = { q: "", category: "", usOnly: false, products: [], cart: JSON.parse(localStorage.getItem("pickit_cart") || "[]") };
+    const PAGE_SIZE = 48;
+    let state = { q: "", category: "", usOnly: false, page: 1, totalHits: 0, products: [], cart: JSON.parse(localStorage.getItem("pickit_cart") || "[]") };
 
     const saveCart = () => { localStorage.setItem("pickit_cart", JSON.stringify(state.cart)); renderCart(); };
 
-    async function fetchProducts() {
+    async function fetchProducts(append = false) {
+      if (!append) state.page = 1;
+      const loadBtn = document.getElementById("loadMoreBtn");
+      loadBtn.disabled = true;
+      loadBtn.textContent = "Loading...";
+
       const params = new URLSearchParams();
       if (state.q) params.set("q", state.q);
       if (state.category) params.set("category", state.category);
       if (state.usOnly) params.set("usStock", "true");
-      params.set("limit", "250");
+      params.set("page", String(state.page));
+      params.set("limit", String(PAGE_SIZE));
+
       const res = await fetch(API_BASE + "/api/search?" + params.toString());
       const data = await res.json();
-      state.products = data.hits || data.products || data || [];
+      const incoming = data.hits || data.products || [];
+      state.totalHits = data.totalHits ?? incoming.length;
+      state.products = append ? state.products.concat(incoming) : incoming;
       renderProducts();
     }
 
     function renderProducts() {
       const grid = document.getElementById("productGrid");
-      document.getElementById("resultMeta").textContent = `Showing ${state.products.length} items`;
+      const total = Math.max(state.totalHits, state.products.length);
+      document.getElementById("resultMeta").textContent = `Showing ${state.products.length} of ${total.toLocaleString()} items`;
+
       grid.innerHTML = state.products.map((p, idx) => {
         const price = Number(p.retail_price || p.price || 19.99).toFixed(2);
         const img = p.main_image || (p.images && p.images[0]) || "https://via.placeholder.com/400?text=PICKIT";
@@ -117,6 +135,17 @@
             </div>
           </div>`;
       }).join("");
+
+      const wrap = document.getElementById("loadMoreWrap");
+      const btn = document.getElementById("loadMoreBtn");
+      const remaining = total - state.products.length;
+      if (remaining > 0) {
+        wrap.classList.remove("hidden");
+        btn.disabled = false;
+        btn.textContent = `Load More (${remaining.toLocaleString()} more available)`;
+      } else {
+        wrap.classList.add("hidden");
+      }
     }
 
     function addToCart(idx) {
@@ -174,16 +203,19 @@
       try {
         const pairs = [];
         for (const it of items) {
-          const pid = it.source_pid || it.id || it.pid;
-          const res = await fetch(API_BASE + "/api/jit-cart", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ productId: pid })
-          });
-          const data = await res.json();
-          const gid = data?.item?.shopify_variant_id || "";
-          const numId = String(gid).split("/").pop();
-          if (!numId || numId.startsWith("DRY_")) throw new Error(data.error || "Variant sync failed: " + JSON.stringify(data));
+          let numId = String(it.variants?.[0]?.shopify_variant_id || "").split("/").pop();
+          if (!numId || numId.startsWith("DRY_")) {
+            const pid = it.source_pid || it.id || it.pid;
+            const res = await fetch(API_BASE + "/api/jit-cart", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ productId: pid })
+            });
+            const data = await res.json();
+            const gid = data?.item?.shopify_variant_id || "";
+            numId = String(gid).split("/").pop();
+            if (!numId || numId.startsWith("DRY_")) throw new Error(data.error || "Variant sync failed: " + JSON.stringify(data));
+          }
           pairs.push(numId + ":" + (it.qty || 1));
         }
         window.location.href = "https://h1fecw-jq.myshopify.com/cart/" + pairs.join(",");
@@ -194,21 +226,26 @@
       }
     }
 
-    document.getElementById("searchInput").addEventListener("input", e => { state.q = e.target.value; fetchProducts(); });
-    document.getElementById("usOnlyToggle").addEventListener("change", e => { state.usOnly = e.target.checked; fetchProducts(); });
+    let searchTimer;
+    document.getElementById("searchInput").addEventListener("input", e => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { state.q = e.target.value; fetchProducts(false); }, 180);
+    });
+    document.getElementById("usOnlyToggle").addEventListener("change", e => { state.usOnly = e.target.checked; fetchProducts(false); });
     document.querySelectorAll(".cat-pill").forEach(btn => btn.addEventListener("click", () => {
       document.querySelectorAll(".cat-pill").forEach(b => { b.classList.remove("bg-slate-900", "text-white"); b.classList.add("bg-slate-100", "text-slate-700"); });
       btn.classList.add("bg-slate-900", "text-white"); btn.classList.remove("bg-slate-100", "text-slate-700");
       state.category = btn.dataset.cat;
-      fetchProducts();
+      fetchProducts(false);
     }));
+    document.getElementById("loadMoreBtn").onclick = () => { state.page += 1; fetchProducts(true); };
     document.getElementById("cartBtn").onclick = () => document.getElementById("cartDrawer").classList.remove("hidden");
     document.getElementById("closeCart").onclick = () => document.getElementById("cartDrawer").classList.add("hidden");
     document.getElementById("cartBackdrop").onclick = () => document.getElementById("cartDrawer").classList.add("hidden");
     document.getElementById("checkoutBtn").onclick = () => { if (state.cart.length) startCheckout(state.cart); };
 
     renderCart();
-    fetchProducts();
+    fetchProducts(false);
   </script>
 </body>
 </html>

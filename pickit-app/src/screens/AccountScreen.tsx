@@ -56,9 +56,9 @@ export default function AccountScreen() {
     },
     {
       icon: "refresh-circle-outline",
-      title: "30-Day Return Guarantee",
+      title: "7-Day Return Guarantee",
       sub: "Easy, no-questions-asked returns",
-      body: "Not 100% thrilled with your purchase? Return any unused item within 30 days of delivery for a full refund to your original payment method.",
+      body: "Not 100% thrilled with your purchase? Return any unused item within 7 days of delivery for a full refund to your original payment method.",
     },
     {
       icon: "chatbubble-ellipses-outline",

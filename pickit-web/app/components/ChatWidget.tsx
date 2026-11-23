@@ -85,7 +85,7 @@ export default function ChatWidget() {
         {
           role: "assistant",
           content:
-            "Connection issue — please try again or email pickitofficial00@gmail.com.",
+            "Connection issue — please try again or email support@pickitcart.com.",
         },
       ]);
     } finally {

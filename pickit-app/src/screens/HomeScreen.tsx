@@ -272,7 +272,7 @@ export default function HomeScreen() {
         </View>
         <Text style={styles.heroTitle}>Smart Picks. Everyday Value.</Text>
         <Text style={styles.heroSubtitle}>
-          Quality-checked essentials backed by 30-Day Buyer Protection & fast tracked US delivery.
+          Quality-checked essentials backed by 7-Day Buyer Protection & fast tracked US delivery.
         </Text>
         <View style={styles.heroStatsRow}>
           <View style={styles.heroStat}>
@@ -286,7 +286,7 @@ export default function HomeScreen() {
           </View>
           <View style={styles.heroDivider} />
           <View style={styles.heroStat}>
-            <Text style={styles.heroStatValue}>30-Day</Text>
+            <Text style={styles.heroStatValue}>7-Day</Text>
             <Text style={styles.heroStatLabel}>Easy Returns</Text>
           </View>
         </View>
@@ -304,7 +304,7 @@ export default function HomeScreen() {
           <View style={styles.trustIconBox}>
             <Ionicons name="refresh-circle-outline" size={16} color="#FF6B00" />
           </View>
-          <Text style={styles.trustItemTitle}>30-Day Return</Text>
+          <Text style={styles.trustItemTitle}>7-Day Return</Text>
           <Text style={styles.trustItemSub}>Easy refund</Text>
         </View>
         <View style={styles.trustItem}>

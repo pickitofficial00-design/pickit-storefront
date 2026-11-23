@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     if (!apiKey) {
       return NextResponse.json({
         reply:
-          "PICKIT AI Assistant is almost ready! Please contact pickitofficial00@gmail.com for immediate help while we finish activating live AI chat.",
+          "PICKIT AI Assistant is almost ready! Please contact support@pickitcart.com for immediate help while we finish activating live AI chat.",
       });
     }
 
@@ -98,9 +98,9 @@ export async function POST(request: Request) {
 STORE FACTS & POLICIES (use these strictly — never invent policies):
 - Processing time: 1–3 business days after payment confirmation.
 - Shipping time: United States standard tracked shipping takes 6–12 business days; international takes 8–18 business days.
-- Returns & Exchanges: 30-day return & exchange window from delivery for unused items in original packaging. Damaged, defective, or wrong items reported within 7 days of delivery receive a free replacement or full refund.
+- Returns & Exchanges: 7-day return & exchange window from delivery for unused items in original packaging. Damaged, defective, or wrong items reported within 7 days of delivery receive a free replacement or full refund.
 - Order Tracking: Customers can sign in at /account/orders to view their orders, or email support with their order number.
-- Customer Support Email: pickitofficial00@gmail.com (replies within 24 hours, Mon–Sat).
+- Customer Support Email: support@pickitcart.com (replies within 24 hours, Mon–Sat).
 - Policy pages available on site: /policies/shipping, /policies/refund, /policies/privacy, /policies/terms, and /contact.
 
 LIVE STORE CATALOG:
@@ -110,7 +110,7 @@ RULES:
 1. Keep responses concise, helpful, and natural (2–4 short sentences unless listing products).
 2. When recommending a product from the catalog, include its exact relative link like /product/handle so the customer can click it.
 3. Never invent products, prices, or discounts not listed in the catalog above.
-4. For order-specific issues, ask for their order number and direct them to /account/orders or pickitofficial00@gmail.com.`;
+4. For order-specific issues, ask for their order number and direct them to /account/orders or support@pickitcart.com.`;
 
     const contents = messages.map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
@@ -159,13 +159,13 @@ RULES:
 
     return NextResponse.json({
       reply:
-        "I'm having trouble connecting right now. You can browse products on our homepage or email pickitofficial00@gmail.com for quick help!",
+        "I'm having trouble connecting right now. You can browse products on our homepage or email support@pickitcart.com for quick help!",
     });
   } catch (err) {
     console.error("PICKIT AI route error:", err);
     return NextResponse.json({
       reply:
-        "I'm having trouble connecting right now. You can browse products on our homepage or email pickitofficial00@gmail.com for quick help!",
+        "I'm having trouble connecting right now. You can browse products on our homepage or email support@pickitcart.com for quick help!",
     });
   }
 }

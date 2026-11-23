@@ -7,3 +7,5 @@
 /logs
 /dumps
 .env
+node_modules/
+web.log

@@ -254,7 +254,7 @@ function buildUsRetailHtml(highlights: string[], specs: Record<string, string>):
       <ul style="padding-left:20px;margin-bottom:18px;">${bullets}</ul>
       <h3 style="font-size:16px;font-weight:800;margin-bottom:8px;">Specifications</h3>
       <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px;"><tbody>${rows}</tbody></table>
-      <p style="font-size:13px;color:#4b5563;"><strong>PICKIT US Shipping Guarantee:</strong> Verified Ship-to-USA fulfillment with tracking (FREE on orders $35+) and 30-day hassle-free returns.</p>
+      <p style="font-size:13px;color:#4b5563;"><strong>PICKIT US Shipping Guarantee:</strong> Verified Ship-to-USA fulfillment with tracking (FREE on orders $35+) and 7-day hassle-free returns.</p>
     </div>
   `.trim();
 }
@@ -536,7 +536,7 @@ export async function POST(request: Request) {
           [
             "Engineered for reliable everyday performance and long-lasting durability",
             "Quality-checked for US retail standards with fast Ship-to-USA tracked delivery",
-            "Backed by PICKIT 30-day hassle-free return guarantee",
+            "Backed by PICKIT 7-day hassle-free return guarantee",
           ],
           {
             Brand: "PICKIT",

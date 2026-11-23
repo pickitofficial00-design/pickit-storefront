@@ -76,7 +76,7 @@ export default function CartScreen() {
           <Text style={styles.emptyIcon}>🛍️</Text>
           <Text style={styles.emptyTitle}>Your PICKIT cart is empty</Text>
           <Text style={styles.emptySub}>
-            Explore verified products with fast US shipping and 30-day returns.
+            Explore verified products with fast US shipping and 7-day returns.
           </Text>
           <TouchableOpacity
             style={styles.shopBtn}

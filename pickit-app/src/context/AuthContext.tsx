@@ -403,7 +403,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             </View>
             <View style={styles.benefitRow}>
               <Ionicons name="checkmark-circle" size={18} color="#059669" />
-              <Text style={styles.benefitText}>30-Day Hassle-Free Buyer Protection</Text>
+              <Text style={styles.benefitText}>7-Day Hassle-Free Buyer Protection</Text>
             </View>
           </View>
 

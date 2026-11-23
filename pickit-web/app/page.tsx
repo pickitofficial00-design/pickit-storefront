@@ -433,7 +433,7 @@ export default function Home() {
             </div>
             <div className="pk-trust-item">
               <span className="pk-trust-icon">↩️</span>
-              <div><strong>30-Day Returns</strong><p>Easy refunds &amp; replacements</p></div>
+              <div><strong>7-Day Returns</strong><p>Easy refunds &amp; replacements</p></div>
             </div>
             <div className="pk-trust-item">
               <span className="pk-trust-icon">🔒</span>
@@ -638,7 +638,7 @@ export default function Home() {
           <div className="pk-footer-brand">
             <Link className="pk-logo pk-footer-logo" href="/">PICK<span>IT.</span></Link>
             <p>Discover more. Choose better. Curated gadgets, useful tech, and everyday essentials delivered with tracked shipping.</p>
-            <a href="mailto:pickitofficial00@gmail.com" className="pk-footer-mail">pickitofficial00@gmail.com</a>
+            <a href="mailto:support@pickitcart.com" className="pk-footer-mail">support@pickitcart.com</a>
           </div>
 
           <div className="pk-footer-col">
@@ -655,6 +655,7 @@ export default function Home() {
             <Link href="/policies/refund">Refund &amp; Return Policy</Link>
             <Link href="/policies/privacy">Privacy Policy</Link>
             <Link href="/policies/terms">Terms of Service</Link>
+            <Link href="/policies/legal">Legal Notice</Link>
             <Link href="/contact">Contact Us</Link>
           </div>
         </div>

@@ -639,7 +639,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
               label: "Availability",
               value: activeVariant?.availableForSale === false ? "Out of Stock" : "In Stock — Fast US Shipping",
             },
-            { label: "Buyer Protection", value: "30-Day Hassle-Free Returns" },
+            { label: "Buyer Protection", value: "7-Day Hassle-Free Returns" },
             ...parsed.specPairs,
           ];
 

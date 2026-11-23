@@ -119,7 +119,7 @@ export default async function AccountPage({
             </div>
             <div>
               <h2>Shipping &amp; Returns</h2>
-              <p>Tracked US delivery and our 30-day hassle-free return policy.</p>
+              <p>Tracked US delivery and our 7-day hassle-free return policy.</p>
             </div>
             <span className="ac-link-text">Read Policies →</span>
           </Link>

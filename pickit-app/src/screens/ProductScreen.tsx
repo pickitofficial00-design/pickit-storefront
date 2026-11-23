@@ -257,7 +257,7 @@ export default function ProductScreen() {
       label: "Availability",
       value: selectedVariant?.availableForSale === false ? "Out of Stock" : "In Stock — Ships from US",
     },
-    { label: "Warranty & Returns", value: "30-Day PICKIT Buyer Protection" },
+    { label: "Warranty & Returns", value: "7-Day PICKIT Buyer Protection" },
   ];
 
   const allSpecRows = [...baseSpecs, ...parsedDetails.specPairs];
@@ -476,7 +476,7 @@ export default function ProductScreen() {
                 <Ionicons name="refresh-circle-outline" size={21} color="#FF6B00" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.trustTitle}>30-Day Hassle-Free Returns</Text>
+                <Text style={styles.trustTitle}>7-Day Hassle-Free Returns</Text>
                 <Text style={styles.trustSub}>Full refund guarantee if you are not 100% satisfied</Text>
               </View>
             </View>
@@ -542,7 +542,7 @@ export default function ProductScreen() {
           <Text style={styles.descText}>
             {parsedDetails.fullBody ||
               product.description ||
-              "Engineered for everyday reliability and inspected for quality prior to US dispatch. Includes PICKIT's 30-day satisfaction and return guarantee."}
+              "Engineered for everyday reliability and inspected for quality prior to US dispatch. Includes PICKIT's 7-day satisfaction and return guarantee."}
           </Text>
         </View>
       </ScrollView>

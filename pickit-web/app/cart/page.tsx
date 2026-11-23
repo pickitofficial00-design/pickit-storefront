@@ -139,7 +139,7 @@ export default function CartPage() {
                 </button>
 
                 <p style={{ textAlign: "center", fontSize: 11, color: "#777", margin: "12px 0 0" }}>
-                  🔒 256-bit SSL Encrypted • 30-Day Money-Back Guarantee
+                  🔒 256-bit SSL Encrypted • 7-Day Money-Back Guarantee
                 </p>
               </aside>
             </div>
